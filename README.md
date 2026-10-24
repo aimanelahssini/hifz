@@ -11,7 +11,7 @@ recited, at the speed you choose.
 <p align="center"><img src="docs/hero.svg" width="860" alt="Hifz on a GNOME desktop: a small card in the top-right corner shows the current ayah in white and the next ones in grey, above a notes window"></p>
 
 <p align="center"><a href="docs/demo.mp4"><img src="docs/demo-poster.jpg" width="560" alt="A frame of the demo video: Hifz in the top-right corner of a desktop, showing Al-Wâqi'a"></a><br>
-<a href="docs/demo.mp4"><b>▶ Watch the demo</b></a> (1:28, with sound)</p>
+<a href="docs/demo.mp4"><b>▶ Watch the demo</b></a> (1:34, with sound)</p>
 
 ## What it does
 
@@ -48,6 +48,10 @@ recited, at the speed you choose.
   **Remind me at 22:00** turns it off and on.
 - **Opens where you left off.** Every way of opening it (`quran`, `hifz`, the app grid) brings
   back the surah and the ayah you were on; only the reminder goes to Al-Wâqi'a.
+
+<p align="center"><img src="docs/dropdown.svg" width="860" alt="The surah list under the surah's name: a search box, a Saved group with starred surahs, then all surahs; finished ones in green, the current one highlighted"></p>
+
+<p align="center"><img src="docs/evening.svg" width="860" alt="The end-of-surah button with its four choices (again, next surah, previous, random), and the 22:00 notification: Time for Al-Wâqi'a, with a Recite now button"></p>
 
 <p align="center"><img src="docs/slide.svg" width="860" alt="Pressing Space slides the text up by one ayah: the next ayah becomes white at the top and the following ones stay grey"></p>
 

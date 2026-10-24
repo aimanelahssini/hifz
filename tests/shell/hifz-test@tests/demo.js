@@ -152,9 +152,16 @@ export async function demo(h) {
     await press(Clutter.KEY_space);
     await sleep(1200);
 
-    // 3. Right-click: "Continue automatically", then the sound on.
+    // 3. Every surah from the name: the list, then back.
+    mark('dropdown');
+    await clickAt(...at(60, 15), Clutter.BUTTON_PRIMARY, 700);
+    await sleep(2200);
+    await press(Clutter.KEY_Escape);
+    await sleep(600);
+
+    // 4. Right-click: "Continue automatically", then the sound on.
     mark('menu');
-    await clickAt(...at(250, 120), Clutter.BUTTON_SECONDARY, 400);
+    await clickAt(...at(250, 120), Clutter.BUTTON_SECONDARY, 500);
     await sleep(900);
     // The first item is already selected: 10 down is "Continue automatically".
     for (let i = 0; i < 10; i++) {
@@ -165,29 +172,35 @@ export async function demo(h) {
     await press(Clutter.KEY_Return);
     await sleep(700);
     mark('audio');
-    await clickAt(...at(379, 16), Clutter.BUTTON_PRIMARY, 700);
+    await clickAt(...at(377, 16), Clutter.BUTTON_PRIMARY, 700);
     await glide(...at(300, 270), 700);
-    // Let it recite a few ayahs by itself.
     const plays = () => playLog().filter(l => l.includes(' play ')).length;
-    for (let t = 0; t < 40000 && plays() < 4; t += 250)
-        await sleep(250);
-    // 4. Faster: 1.25x from the same menu.
+    for (let t = 0; t < 40000 && plays() < 3; t += 100)
+        await sleep(100);
+    await sleep(1500);
+    // Space pauses, Space plays on.
+    mark('pause');
+    await press(Clutter.KEY_space);
+    await sleep(1800);
+    await press(Clutter.KEY_space);
+    for (let t = 0; t < 40000 && plays() < 4; t += 100)
+        await sleep(100);
+    // Faster with the right arrow, 0.05 a press, shown next to the speaker.
     mark('speed');
-    await clickAt(...at(250, 120), Clutter.BUTTON_SECONDARY, 500);
-    await sleep(800);
-    for (let i = 0; i < 4; i++) {           // 1.25x
-        await press(Clutter.KEY_Down);
-        await sleep(130);
+    for (let i = 0; i < 5; i++) {
+        await press(Clutter.KEY_Right);
+        await sleep(350);
     }
-    await sleep(400);
-    await press(Clutter.KEY_Return);
-    await glide(...at(300, 270), 500);
     // Mute as soon as the 7th ayah is over (the 8th has just begun).
     for (let t = 0; t < 40000 && plays() < 8; t += 50)
         await sleep(50);
     mark('mute');
-    await clickAt(...at(379, 16), Clutter.BUTTON_PRIMARY, 60);
-    await sleep(1000);
+    await clickAt(...at(377, 16), Clutter.BUTTON_PRIMARY, 60);
+    await sleep(900);
+    // After this surah: the next one.
+    mark('mode');
+    await clickAt(...at(306, 16), Clutter.BUTTON_PRIMARY, 700);
+    await sleep(1800);
 
     // 5. Close it, and it opens again where you left off; near the end this time.
     mark('close');
@@ -211,7 +224,7 @@ export async function demo(h) {
     mark('finish');
     await press(Clutter.KEY_space);
     await sleep(2000);
-    await clickAt(...at(270, 136), Clutter.BUTTON_PRIMARY, 900);
+    await clickAt(...at(270, 144), Clutter.BUTTON_PRIMARY, 900);
     await sleep(3500);
     await glide(...at(-120, 330), 900);
     await sleep(800);

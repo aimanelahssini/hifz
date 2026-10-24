@@ -71,6 +71,19 @@ def speaker(x, y, on, color='#fff', opacity=0.5):
     return g + '</g>'
 
 
+def mode_icon(cx, cy, mode, opacity=0.5, size=1.0):
+    """The end-of-surah button: again, next, previous, random."""
+    st = (f'fill="none" stroke="#fff" stroke-opacity="{opacity}" stroke-width="{1.6 / size:.2f}" '
+          'stroke-linecap="round" stroke-linejoin="round"')
+    d = {
+        'repeat': 'M-5 -1a5 5 0 0 1 8.5-3.5M5 1a5 5 0 0 1-8.5 3.5M3.5-7.5v3h-3M-3.5 7.5v-3h3',
+        'next': 'M-5 0h10M1-4l4 4-4 4',
+        'previous': 'M5 0h-10M-1-4l-4 4 4 4',
+        'shuffle': 'M-6-4h3l6 8h3M-6 4h3l6-8h3M4-6l2 2-2 2M4 2l2 2-2 2',
+    }[mode]
+    return f'<path transform="translate({cx},{cy}) scale({size})" d="{d}" {st}/>'
+
+
 def count(x, y, n, bump=False):
     """The finished-count pill; x is its right edge."""
     w = 34 + 7 * (len(str(n)) - 1)
@@ -85,7 +98,8 @@ def count(x, y, n, bump=False):
 
 
 def card(x, y, index=4, finished=3, audio=False, blur=False, surah="Al-Wâqi'a", lines=None,
-         total=96, scale=1.0, shadow=True, offset=0.0, number=56, speed='1×'):
+         total=96, scale=1.0, shadow=True, offset=0.0, number=56, speed='1×', mode='repeat',
+         mode_hl=False):
     """The Hifz card at (x, y). index: the current line (0 = basmala). offset: 0..1 of a slide."""
     lines = lines or LINES
     g = [f'<g transform="translate({x},{y}) scale({scale})">']
@@ -103,6 +117,9 @@ def card(x, y, index=4, finished=3, audio=False, blur=False, surah="Al-Wâqi'a",
     inner.append(f'<path d="M{cx} 14.5l3 3 3-3" fill="none" stroke="#fff" stroke-opacity="0.45" '
                  'stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>')
     inner.append(t(cx + 16, 19.5, where, 11, '#fff', 400, opacity=0.5))
+    if mode_hl:
+        inner.append(f'<circle cx="{W - 136}" cy="15" r="11" fill="#fff" fill-opacity="0.18"/>')
+    inner.append(mode_icon(W - 136, 15, mode, opacity=1 if mode_hl else 0.5))
     inner.append(t(W - 80, 19.5, speed, 11, '#fff', 700, 'end', 0.55))
     inner.append(speaker(W - 66, 12.5, audio, opacity=1 if audio else 0.45))
     inner.append(count(W - 12, 11, finished))
@@ -118,9 +135,12 @@ def card(x, y, index=4, finished=3, audio=False, blur=False, surah="Al-Wâqi'a",
             continue
         tone = tones[min(k, 4)]
         for row in wrap(lines[i]):
-            body.append(t(18, yy, row, 19, '#fff', 500, opacity=tone))
+            body.append(t(18, yy, row, 19, '#fff', 700 if k == 0 else 500, opacity=tone))
             yy += 23
         yy += 12
+        if i == len(lines) - 1:
+            body.append(f'<text x="18" y="{yy - 4}" font-size="14" font-weight="600" font-style="italic" '
+                        f'fill="#e9c46a" fill-opacity="0.9">Finished? Press Space or scroll</text>')
     body.append('</g>')
     if blur:
         inner = [f'<g filter="url(#blur)" opacity="0.55">'] + inner + body + ['</g>']
@@ -144,11 +164,12 @@ def wrap(s, width=37):
     return rows
 
 
-def finish_overlay(x, y, surah="Al-Wâqi'a", n=3):
+def finish_overlay(x, y, surah="Al-Wâqi'a", n=3, then='Then from the start'):
     g = [f'<g transform="translate({x},{y})">',
-         f'<rect width="{W}" height="{H}" rx="18" fill="#0a0a0e" fill-opacity="0.30"/>',
-         t(W / 2, 92, f'Finished {surah}?', 17, '#fff', 600, 'middle'),
-         t(W / 2, 114, f'Finished {n} times so far', 12, '#fff', 400, 'middle', 0.6),
+         f'<rect width="{W}" height="{H}" rx="18" fill="#0a0a0e" fill-opacity="0.45"/>',
+         t(W / 2, 84, f'Finished {surah}?', 17, '#fff', 600, 'middle'),
+         t(W / 2, 104, f'Finished {n} times so far', 12, '#fff', 400, 'middle', 0.6),
+         t(W / 2, 121, then, 11, '#e9c46a', 400, 'middle', 0.9),
          '<rect x="104" y="132" width="92" height="34" rx="17" fill="#fff" fill-opacity="0.12"/>',
          t(150, 154, 'Not yet', 14, '#fff', 600, 'middle'),
          '<rect x="206" y="132" width="132" height="34" rx="17" fill="#fff"/>',
@@ -234,31 +255,31 @@ def finish():
     w, h = 1200, 330
     body = f'<rect width="{w}" height="{h}" rx="22" fill="url(#wall)"/>'
     last = len(LINES) - 1
-    body += card(40, 58, index=last, finished=3, blur=True)
-    body += finish_overlay(40, 58)
-    body += card(720, 58, index=0, finished=4)
-    body += ('<rect x="0" y="0" width="0" height="0"/>')
-    # The bumped counter on the right card.
-    body += f'<g transform="translate({720},{58})">' + count(W - 12, 11, 4, bump=True) + '</g>'
+    body += card(40, 58, index=last, finished=3, blur=True, mode='next')
+    body += finish_overlay(40, 58, then='Then 57 Al-Hadîd')
+    hadid = [line.phonetic for line in quran.lines(57)]
+    body += card(720, 58, index=0, finished=0, surah='Al-Hadîd', number=57, lines=hadid, total=29,
+                 mode='next')
     body += ('<path d="M512 165h176" stroke="#fff" stroke-opacity="0.6" stroke-width="2" '
              'stroke-dasharray="2 7" stroke-linecap="round"/>'
              '<path d="M680 159l9 6-9 6" fill="none" stroke="#fff" stroke-opacity="0.6" '
              'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')
     body += t(600, 150, 'Yes, I finished', 13, '#fff', 500, 'middle', 0.75)
-    body += t(600, 190, '3 → 4, back to the start', 12, '#fff', 400, 'middle', 0.55)
+    body += t(600, 190, 'counted, then the next surah,', 12, '#fff', 400, 'middle', 0.55)
+    body += t(600, 208, 'waiting on its first line', 12, '#fff', 400, 'middle', 0.55)
     return svg(w, h, body, 'At the last ayah a question appears over the blurred text: '
-               'Finished Al-Wâqi\'a? Yes adds one to the counter in the top-right corner and '
-               'goes back to the start.')
+               'Finished Al-Wâqi\'a? Then 57 Al-Hadîd. Yes counts it and opens Al-Hadîd, waiting on '
+               'its first line.')
 
 
 def menu():
-    w, h = 1200, 640
+    w, h = 1200, 680
     body = f'<rect width="{w}" height="{h}" rx="22" fill="url(#wall)"/>'
     cx, cy = 60, 60
     body += card(cx, cy, index=7, finished=3, audio=True, speed='1.25×')
     mx, my = cx + 300, cy + 96
     items = ['0.5×', '0.75×', '1×', '1.1×', '1.25×', '1.5×', '1.75×', '2×']
-    mh = 34 + len(items) * 30 + 12 + 4 * 30 + 12 + 2 * 30 + 10
+    mh = 34 + len(items) * 30 + 12 + 5 * 30 + 12 + 2 * 30 + 10
     g = [f'<g transform="translate({mx},{my})" filter="url(#shadow)">',
          f'<rect width="300" height="{mh}" rx="12" fill="#2b2b31"/>',
          f'<rect x="0.5" y="0.5" width="299" height="{mh - 1}" rx="11.5" fill="none" stroke="#fff" stroke-opacity="0.08"/>',
@@ -276,7 +297,8 @@ def menu():
     g.append(f'<rect x="10" y="{yy + 5}" width="280" height="1" fill="#fff" fill-opacity="0.10"/>')
     yy += 12
     for label, check, sub in (('Recitation', True, False), ('Reciter', False, True),
-                              ('Continue automatically', False, False), ('Show Arabic', False, False)):
+                              ('Continue automatically', False, False), ('Show Arabic', False, False),
+                              ("Remind me at 22:00 (Al-Wâqi'a)", True, False)):
         if check:
             g.append(f'<path d="M17 {yy + 15}l4 4 8-9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')
         g.append(t(42, yy + 20, label, 14, '#fff', 400, opacity=0.92))
@@ -300,15 +322,18 @@ def menu():
     body += t(760, 150, 'The recitation follows your line', 22, '#fff', 700)
     body += t(760, 180, 'Turn the sound on and the current ayah', 15, '#fff', 400, opacity=0.75)
     body += t(760, 202, 'is recited when it reaches the top.', 15, '#fff', 400, opacity=0.75)
-    body += t(760, 234, 'Muted by default: no sound stream at all.', 15, '#fff', 400, opacity=0.75)
+    body += t(760, 234, 'Space pauses and plays. Muted by default:', 15, '#fff', 400, opacity=0.75)
+    body += t(760, 256, 'no sound stream at all.', 15, '#fff', 400, opacity=0.75)
     bars = [6, 14, 22, 12, 26, 18, 9, 20, 28, 15, 7, 17, 24, 11, 5, 13, 21, 10, 6]
     for k, b in enumerate(bars):
-        body += (f'<rect x="{760 + k * 12}" y="{292 - b}" width="6" height="{2 * b}" rx="3" '
+        body += (f'<rect x="{760 + k * 12}" y="{318 - b}" width="6" height="{2 * b}" rx="3" '
                  f'fill="url(#gold)" fill-opacity="{0.95 if k < 11 else 0.35}"/>')
-    body += t(760, 350, '0.5×  0.75×  1×  1.1×  1.25×  1.5×  1.75×  2×', 14, '#fff', 500, opacity=0.6)
-    body += t(760, 372, 'same pitch at every speed', 13, '#fff', 400, opacity=0.5)
+    body += keycap(760, 370, '←', 44) + keycap(812, 370, '→', 44)
+    body += t(870, 396, '0.05× slower or faster, 0.5× to 2×', 14, '#fff', 500, opacity=0.75)
+    body += t(760, 444, 'same pitch at every speed, kept for next time', 13, '#fff', 400, opacity=0.5)
     return svg(w, h, body, 'The right-click menu: speeds from 0.5× to 2×, Recitation, Reciter, '
-               'Continue automatically, Show Arabic, Back to the beginning and Close.')
+               'Continue automatically, Show Arabic, the 22:00 reminder, Back to the beginning and Close. '
+               'The left and right arrows change the speed by 0.05.')
 
 
 def terminal():
@@ -344,9 +369,11 @@ def terminal():
     # The rows around Al-Wâqi'a, with the last one highlighted.
     for n in (55, 56, 57):
         hl = n == 56
-        s = f'{n:3}  {quran.name(n)}' + ('  ✓3' if hl else '')
-        out.append(t(tx + 22, yy, s, 13, '#7ee2a8' if hl else '#e8e8ec', 700 if hl else 400,
-                     opacity=1 if hl else 0.85, cls='mono'))
+        out.append(t(tx + 22, yy, f'{n:3}', 13, '#e8e8ec', 400, opacity=0.5, cls='mono'))
+        out.append(t(tx + 22 + 5 * 7.8, yy, quran.name(n), 13, '#f1d36b' if hl else '#7ee2a8' if n == 55 else '#e8e8ec',
+                     700 if hl else 400, opacity=1 if hl else 0.85, cls='mono'))
+        if hl:
+            out.append(t(tx + 22 + 15 * 7.8, yy, '✓3 ★', 13, '#e8e8ec', 400, opacity=0.5, cls='mono'))
         yy += 21
     yy += 12
     out.append(t(tx + 22, yy, "Surah number (Enter = 56 Al-Wâqi'a): 56", 13, '#e8e8ec', 400, cls='mono'))
@@ -359,13 +386,102 @@ def terminal():
                "opens Al-Wâqi'a in the corner, and the terminal can be closed.")
 
 
+def dropdown():
+    w, h = 1200, 560
+    body = f'<rect width="{w}" height="{h}" rx="22" fill="url(#wall)"/>'
+    cx, cy = 60, 60
+    body += card(cx, cy, index=4, finished=3)
+    # The list under the surah's name.
+    px, py, pw = cx + 6, cy + 32, 300
+    rows = [('Saved', None)] + [(n, 'saved') for n in (36, 67)] + [('All surahs', None)] + \
+        [(n, 'all') for n in range(53, 61)]
+    ph = 52 + sum(24 if v is None else 30 for _, v in rows) + 8
+    g = [f'<g transform="translate({px},{py})" filter="url(#shadow)">',
+         f'<rect width="{pw}" height="{ph}" rx="12" fill="#2b2b31"/>',
+         '<rect x="8" y="8" width="284" height="34" rx="9" fill="#fff" fill-opacity="0.06" stroke="#7aa2f7" stroke-width="2"/>',
+         '<circle cx="26" cy="24" r="5.5" fill="none" stroke="#fff" stroke-opacity="0.55" stroke-width="1.6"/>'
+         '<path d="M30 28l4 4" stroke="#fff" stroke-opacity="0.55" stroke-width="1.6" stroke-linecap="round"/>',
+         t(42, 30, 'Number or name', 14, '#fff', 400, opacity=0.45)]
+    done = {55: 1, 56: 3, 67: 2}
+    yy = 52
+    for v, kind in rows:
+        if kind is None:
+            g.append(t(16, yy + 16, v, 11, '#fff', 700, opacity=0.5))
+            yy += 24
+            continue
+        if v == 56 and kind == 'all':
+            g.append(f'<rect x="6" y="{yy}" width="{pw - 12}" height="30" rx="8" fill="#e9c46a" fill-opacity="0.16"/>')
+        if v == 58:
+            g.append(f'<rect x="6" y="{yy}" width="{pw - 12}" height="30" rx="8" fill="#fff" fill-opacity="0.07"/>')
+        g.append(t(40, yy + 20, str(v), 13, '#fff', 600, 'end', 0.45))
+        g.append(t(54, yy + 20, quran.name(v), 13, '#7ee2a8' if v in done else '#fff',
+                   700 if v == 56 and kind == 'all' else 400, opacity=0.95))
+        if v in done:
+            g.append(t(pw - 46, yy + 20, f'✓{done[v]}', 12, '#fff', 400, 'end', 0.45))
+        star = 'M0-6.5l1.9 4.2 4.6.5-3.4 3.1 1 4.5L0 3.5l-4.1 2.3 1-4.5-3.4-3.1 4.6-.5z'
+        if kind == 'saved':
+            g.append(f'<path transform="translate({pw - 26},{yy + 15})" d="{star}" fill="#e9c46a"/>')
+        elif v == 58:
+            g.append(f'<path transform="translate({pw - 26},{yy + 15})" d="{star}" fill="none" '
+                     'stroke="#e9c46a" stroke-width="1.4" stroke-linejoin="round"/>')
+        yy += 30
+    g.append('</g>')
+    body += ''.join(g)
+    body += (f'<path d="M{px + pw - 120} {py + 52 + 24 + 60 + 24 + 5 * 30 + 6}l0 17 4.5-4 3 6.5 3-1.4-3-6.4 6-.2z" '
+             'fill="#fff" stroke="#000" stroke-width="1.2" stroke-linejoin="round"/>')
+    tx = 640
+    body += t(tx, 130, 'Every surah, one click away', 22, '#fff', 700)
+    for k, line in enumerate(['Click the surah\'s name for all 114, with their', 'numbers and a search box: 112 or ikhlas.',
+                              '', 'Finished ones are green.', 'Point at one and click its star to save it:',
+                              'saved surahs come first.']):
+        body += t(tx, 162 + k * 24, line, 15, '#fff', 400, opacity=0.75)
+    return svg(w, h, body, 'The surah list under the surah\'s name: a search box, a Saved group with '
+               'starred surahs, then all surahs; finished ones in green, the current one highlighted, '
+               'and a star on the one the pointer is on.')
+
+
+def evening():
+    w, h = 1200, 420
+    body = f'<rect width="{w}" height="{h}" rx="22" fill="url(#wall)"/>'
+    # The end-of-surah button and its four choices.
+    body += t(60, 70, 'What comes after a finished surah', 20, '#fff', 700)
+    choices = [('repeat', 'Again'), ('next', 'Next surah'), ('previous', 'Previous'), ('shuffle', 'Random')]
+    for k, (mode, label) in enumerate(choices):
+        x = 60 + k * 130
+        hl = k == 1
+        body += (f'<circle cx="{x + 28}" cy="128" r="26" fill="#fff" fill-opacity="{0.18 if hl else 0.07}"/>')
+        body += mode_icon(x + 28, 128, mode, opacity=1 if hl else 0.7, size=1.9)
+        body += t(x + 28, 180, label, 13, '#fff', 600 if hl else 400, 'middle', 0.9 if hl else 0.65)
+    body += t(60, 230, 'One round button in the header: each click picks the next choice.', 14, '#fff', 400, opacity=0.7)
+    body += t(60, 254, 'After Yes, nothing plays by itself: it waits on the first line.', 14, '#fff', 400, opacity=0.7)
+    # The evening reminder.
+    nx, ny, nw = 660, 90, 480
+    body += (f'<g transform="translate({nx},{ny})" filter="url(#shadow)">'
+             f'<rect width="{nw}" height="150" rx="16" fill="#2b2b31"/>'
+             '<g transform="translate(18,18) scale(0.34)">'
+             '<rect x="8" y="8" width="112" height="112" rx="28" fill="#1d2233"/>'
+             '<rect x="28" y="50" width="58" height="11" rx="5.5" fill="#fff"/>'
+             '<rect x="28" y="70" width="72" height="9" rx="4.5" fill="#fff" fill-opacity="0.42"/>'
+             '<circle cx="94" cy="32" r="11" fill="url(#gold)"/></g>'
+             + t(70, 34, 'Hifz', 12, '#fff', 600, opacity=0.6) + t(nw - 18, 34, '22:00', 12, '#fff', 400, 'end', 0.5)
+             + t(70, 62, "Time for Al-Wâqi'a", 16, '#fff', 700)
+             + t(70, 86, "Recite Al-Wâqi'a before you sleep.", 14, '#fff', 400, opacity=0.75)
+             + f'<rect x="16" y="104" width="{nw - 32}" height="34" rx="10" fill="#fff" fill-opacity="0.08"/>'
+             + t(nw / 2, 126, 'Recite now', 14, '#fff', 600, 'middle') + '</g>')
+    body += t(nx, 290, 'Every evening at 22:00', 20, '#fff', 700)
+    body += t(nx, 318, "Click it and Hifz opens on Al-Wâqi'a, even when it's closed.", 14, '#fff', 400, opacity=0.7)
+    body += t(nx, 342, 'Right-click the card to turn it off.', 14, '#fff', 400, opacity=0.7)
+    return svg(w, h, body, "The end-of-surah button with its four choices (again, next surah, previous, "
+               "random), and the 22:00 notification: Time for Al-Wâqi'a, with a Recite now button.")
+
+
 def main():
     # The website's "try it" card uses the same lines.
     import json
     with open(os.path.join(HERE, '..', 'site', 'waqia.json'), 'w', encoding='utf-8') as f:
         json.dump(LINES, f, ensure_ascii=False)
     for name, fn in (('hero', hero), ('slide', slide), ('finish', finish), ('menu', menu),
-                     ('terminal', terminal)):
+                     ('terminal', terminal), ('dropdown', dropdown), ('evening', evening)):
         with open(os.path.join(HERE, f'{name}.svg'), 'w', encoding='utf-8') as f:
             f.write(fn())
 

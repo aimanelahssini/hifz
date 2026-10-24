@@ -30,13 +30,15 @@ def segments():
     out = []
     cur = None                  # [start, offset, speed, file]
     speed = 1.0
+    last = None                 # (file, offset reached) when it stopped, for a resume
 
     def close(t):
-        nonlocal cur
+        nonlocal cur, last
         if cur:
             start, off, v, f = cur
             if t > start:
                 out.append((start, off, t - start, v, f))
+            last = (f, off + (t - start) * v)
             cur = None
 
     for line in open(os.path.join(OUT, 'play.log')):
@@ -49,6 +51,8 @@ def segments():
             cur = [t, 0.0, float(parts[3]), f]
         elif what == 'stop':
             close(t)
+        elif what == 'resume' and last:
+            cur = [t, last[1], float(parts[3]), last[0]]
         elif what == 'speed':
             speed = float(parts[2])
             if cur and speed != cur[2]:

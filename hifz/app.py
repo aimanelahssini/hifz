@@ -36,6 +36,7 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
   color: rgba(255, 255, 255, 0.45); background: none; box-shadow: none;
 }
 .head button:hover { color: white; background: rgba(255, 255, 255, 0.10); }
+.head button, .head button:focus, .head button:focus-visible { outline: none; }
 .head button.on { color: white; }
 .head .close { opacity: 0; transition: opacity 160ms ease; }
 .card:hover .head .close { opacity: 1; }
