@@ -20,7 +20,7 @@ import unicodedata
 from . import quran
 from .state import State
 
-BOLD, DIM, GREEN, RESET = '\033[1m', '\033[2m', '\033[32m', '\033[0m'
+BOLD, DIM, GREEN, YELLOW, RESET = '\033[1m', '\033[2m', '\033[32m', '\033[33m', '\033[0m'
 
 
 def plain(s):
@@ -49,8 +49,10 @@ def find(text):
 
 def show_list(state, color):
     width = shutil.get_terminal_size((100, 30)).columns
-    cell = 3 + max(len(f'{n:3}  {quran.name(n)}' + (f' ✓{state.finished(n)}' if state.finished(n) else ''))
-                   for n in range(1, 115))
+    def mark(n):
+        done = state.finished(n)
+        return (f' ✓{done}' if done else '') + (' ★' if n in state.saved else '')
+    cell = 3 + max(len(f'{n:3}  {quran.name(n)}{mark(n)}') for n in range(1, 115))
     cols = max(1, min(6, width // cell))
     rows = -(-114 // cols)
     for r in range(rows):
@@ -60,14 +62,12 @@ def show_list(state, color):
             if n > 114:
                 continue
             name = quran.name(n)
-            done = state.finished(n)
-            mark = f' ✓{done}' if done else ''
-            text = f'{n:3}  {name}{mark}'
+            text = f'{n:3}  {name}{mark(n)}'
             pad = ' ' * max(1, cell - len(text))
-            if color and n == state.surah:
-                text = f'{BOLD}{GREEN}{text}{RESET}'
-            elif color and done:
-                text = f'{n:3}  {name}{DIM}{mark}{RESET}'
+            if color:
+                # The last surah in bold yellow, finished ones in green, the rest plain.
+                tone = f'{BOLD}{YELLOW}' if n == state.surah else GREEN if state.finished(n) else ''
+                text = f'{DIM}{n:3}{RESET}  {tone}{name}{RESET}{DIM}{mark(n)}{RESET}'
             parts.append(text + pad)
         print(''.join(parts).rstrip())
 

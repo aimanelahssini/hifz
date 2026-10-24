@@ -90,15 +90,23 @@ def _log(*what):
 
 
 class Player:
-    """Plays one ayah at a time. Call start() to create the pipeline and stop() to drop it."""
+    """Plays one ayah at a time. Call start() to create the pipeline and stop() to drop it.
 
-    def __init__(self, on_end):
+    Speed is the playback rate, with scaletempo keeping the voice at its pitch. A change while
+    playing is an instant rate change (no flush, no gap), and with "continue automatically"
+    the next ayah is handed to playbin before the current one ends (gapless).
+    """
+
+    def __init__(self, on_end, on_next=None):
         Gst.init(None)
         self.on_end = on_end
+        self.on_next = on_next     # a queued ayah has started (gapless)
+        self.queued = None         # the file to go on with when this one ends
+        self._gapless = False
+        self._starting = False
         self.pipe = None
-        self.tempo = None
         self.speed = 1.0
-        self.playing = None        # (path) of the file being played
+        self.playing = None        # the file being played
 
     @property
     def active(self):
@@ -109,14 +117,9 @@ class Player:
             return
         self.pipe = Gst.ElementFactory.make('playbin', 'hifz')
         self.pipe.set_property('video-sink', Gst.ElementFactory.make('fakesink', None))
-        # Pitch-preserving speed: soundtouch's "pitch" element, or scaletempo.
-        self.tempo = Gst.ElementFactory.make('pitch', None)
-        if self.tempo is not None:
-            self.tempo.set_property('tempo', self.speed)
-        else:
-            self.tempo = Gst.ElementFactory.make('scaletempo', None)
-        if self.tempo is not None:
-            self.pipe.set_property('audio-filter', self.tempo)
+        tempo = Gst.ElementFactory.make('scaletempo', None)
+        if tempo is not None:
+            self.pipe.set_property('audio-filter', tempo)
         sink = os.environ.get('HIFZ_AUDIO_SINK')      # tests: "fakesink sync=true"
         if sink:
             self.pipe.set_property('audio-sink', Gst.parse_launch(sink))
@@ -125,18 +128,23 @@ class Player:
         bus.connect('message::eos', self._eos)
         bus.connect('message::error', self._eos)
         bus.connect('message::async-done', self._async_done)
+        bus.connect('message::stream-start', self._stream_start)
+        self.pipe.connect('about-to-finish', self._about_to_finish)
 
     def stop(self):
+        self.queued = None
+        self._gapless = False
         _log('stop')
         if self.pipe:
             self.pipe.set_state(Gst.State.NULL)
             self.pipe.get_bus().remove_signal_watch()
             self.pipe = None
-            self.tempo = None
         self.playing = None
 
     def halt(self):
         """Stop the current ayah but keep the pipeline."""
+        self.queued = None
+        self._gapless = False
         _log('stop')
         if self.pipe:
             self.pipe.set_state(Gst.State.READY)
@@ -149,28 +157,51 @@ class Player:
         self.pipe.set_property('uri', Gst.filename_to_uri(path))
         self.playing = path
         _log('play', path, self.speed)
-        self._needs_rate = self.tempo is not None and self.tempo.get_factory().get_name() == 'scaletempo'
-        self.pipe.set_state(Gst.State.PLAYING)
+        # Preroll paused, set the rate, then play: no first moment at the wrong speed.
+        self._starting = True
+        self.pipe.set_state(Gst.State.PAUSED)
 
     def set_speed(self, speed):
         self.speed = speed
         _log('speed', speed)
-        if self.tempo is None:
-            return
-        if self.tempo.get_factory().get_name() == 'pitch':
-            self.tempo.set_property('tempo', speed)
-        elif self.playing:
-            self._seek_rate()
+        if self.pipe and self.playing and not self._starting:
+            self._rate()
 
-    def _seek_rate(self):
+    def _rate(self):
+        flags = getattr(Gst.SeekFlags, 'INSTANT_RATE_CHANGE', None)
+        if flags is not None and self.pipe.seek(self.speed, Gst.Format.TIME, flags, Gst.SeekType.NONE, 0,
+                                                Gst.SeekType.NONE, 0):
+            return
         ok, pos = self.pipe.query_position(Gst.Format.TIME)
         self.pipe.seek(self.speed, Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
                        Gst.SeekType.SET, pos if ok else 0, Gst.SeekType.NONE, 0)
 
+    def _about_to_finish(self, pipe):
+        # Runs in a streaming thread: only hand over the file that is already queued.
+        path = self.queued
+        if path and os.path.exists(path):
+            self.queued = None
+            self._gapless = path
+            pipe.set_property('uri', Gst.filename_to_uri(path))
+
+    def _stream_start(self, bus, msg):
+        path = self._gapless
+        if path:
+            self._gapless = False
+            self.playing = path
+            _log('play', path, self.speed)
+            if self.speed != 1.0:
+                self._rate()       # each new stream starts at its own rate 1
+            if self.on_next:
+                self.on_next()
+
     def _async_done(self, bus, msg):
-        if getattr(self, '_needs_rate', False) and self.speed != 1.0:
-            self._needs_rate = False
-            self._seek_rate()
+        if self._starting:
+            self._starting = False
+            if self.speed != 1.0:
+                self.pipe.seek(self.speed, Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
+                               Gst.SeekType.SET, 0, Gst.SeekType.NONE, 0)
+            self.pipe.set_state(Gst.State.PLAYING)
 
     def _eos(self, bus, msg):
         if self.pipe:

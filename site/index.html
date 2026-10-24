@@ -86,6 +86,9 @@ h1 span { background: linear-gradient(135deg, #f6d98b, var(--gold2)); -webkit-ba
   font-size: 11px; color: rgba(255, 255, 255, 0.5); }
 .card .head b { color: rgba(255, 255, 255, 0.74); font-weight: 600; }
 .card .head .sp { flex: 1; }
+.card .head .num { color: rgba(255, 255, 255, 0.45); font-weight: 600; }
+.card .head .speed { font-weight: 700; color: rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; }
+.card .endhint { font-size: 14px; font-weight: 600; color: rgba(233, 196, 106, 0.9); line-height: 23px; }
 .card .count { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: rgba(255, 255, 255, 0.62);
   background: rgba(255, 255, 255, 0.08); border-radius: 999px; padding: 1px 8px 1px 6px; transition: background .3s, color .3s; }
 .card .count.bump { background: rgba(120, 220, 160, 0.32); color: #fff; }
@@ -205,7 +208,8 @@ footer a { color: var(--muted); }
       <div class="stage" aria-label="Try it: a working copy of the Hifz card">
         <div class="bar">Fri 14:05</div>
         <div class="card" id="card" tabindex="0" role="application" aria-label="Hifz card. Press Space for the next ayah, Backspace for the previous one.">
-          <div class="head"><b>Al-Wâqi'a</b><span id="where">·  Bismillah</span><span class="sp"></span>
+          <div class="head"><span class="num">56</span><b>Al-Wâqi'a</b><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="where">·  Bismillah</span><span class="sp"></span>
+            <span class="speed" id="speed">1×</span>
             <span class="spk" aria-hidden="true"><svg width="15" height="14" viewBox="0 0 15 14" fill="#fff"><path d="M0 4.5h3l4-3.5v12l-4-3.5H0z"/><path d="M9.5 4.5l4 4m0-4l-4 4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
             <span class="count" id="count"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.3l2.4 2.4 4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="n">0</span></span>
           </div>
@@ -213,7 +217,7 @@ footer a { color: var(--muted); }
           <div class="ask"><b>Finished Al-Wâqi'a?</b><small id="so-far">It will count as your first time</small>
             <div><button id="no">Not yet</button><button class="yes" id="yes">Yes, I finished</button></div></div>
         </div>
-        <div class="keys">Try it: <button id="prev" aria-label="Previous ayah"><kbd>⌫</kbd></button><button id="next" aria-label="Next ayah"><kbd>Space</kbd></button></div>
+        <div class="keys">Try it: <button id="slower" aria-label="Slower"><kbd>←</kbd></button><button id="faster" aria-label="Faster"><kbd>→</kbd></button><button id="prev" aria-label="Previous ayah"><kbd>⌫</kbd></button><button id="next" aria-label="Next ayah"><kbd>Space</kbd></button></div>
       </div>
     </div>
   </div>
@@ -244,7 +248,7 @@ footer a { color: var(--muted); }
       <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 7.5h3.5l4.5-4v13l-4.5-4H2z"/><path d="M13 7a4 4 0 0 1 0 6M15.5 4.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
         <h3>A recitation that follows you</h3><p>Turn the sound on and the ayah at the top is recited. Muted by default, with no sound stream at all.</p></div>
       <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 14a7 7 0 1 1 14 0"/><path d="M10 14l3.5-4.5"/></svg></div>
-        <h3>0.5× to 2×</h3><p>Right-click for the speed: 0.5, 0.75, 1, 1.1, 1.25, 1.5, 1.75 or 2. The voice keeps its pitch.</p></div>
+        <h3>0.5× to 2×</h3><p>← and → change the speed by 0.05, shown next to the speaker and kept for next time. The voice keeps its pitch.</p></div>
       <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10v14l-5-3.5L5 17z"/></svg></div>
         <h3>Picks up where you left off</h3><p>Close it any time. Next time it opens on the same surah, at the same ayah.</p></div>
       <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg></div>
@@ -259,7 +263,7 @@ footer a { color: var(--muted); }
       <div class="txt"><h3>Type <code>quran</code>, pick a number</h3>
         <p>The terminal lists the 114 surahs. Type a number (or press Enter for the last one) and
           Hifz opens in the corner. Close the terminal: Hifz stays.</p>
-        <p><code>quran 56</code> and <code>quran waqia</code> work too.</p></div>
+        <p><code>quran 56</code> and <code>quran waqia</code> work too, and clicking the surah's name on the card opens the list of all 114: finished ones in green, and a star to save the ones you're working on.</p></div>
       <img src="assets/terminal.svg" alt="The quran command lists the 114 surahs with their numbers; typing 56 opens Al-Wâqi'a in the corner" loading="lazy">
     </div>
     <div class="row flip">
@@ -356,7 +360,7 @@ cd hifz
   n.textContent = done;
 
   function render() {
-    [...box.children].forEach((el, k) => {
+    [...box.children].slice(0, lines.length).forEach((el, k) => {
       const d = k - i;
       el.className = 'l' + (d < 0 ? ' past' : d === 0 ? ' cur' : d === 2 ? ' d2' : d === 3 ? ' d3' : d > 3 ? ' far' : '');
     });
@@ -377,6 +381,13 @@ cd hifz
     if (card.classList.contains('finishing')) { card.classList.remove('finishing'); return; }
     if (i > 0) { i--; render(); }
   }
+  let speed = 1;
+  function setSpeed(v) {
+    speed = Math.round(Math.min(2, Math.max(0.5, v)) * 20) / 20;
+    document.getElementById('speed').textContent = `${+speed.toFixed(2)}×`;
+  }
+  document.getElementById('faster').addEventListener('click', () => setSpeed(speed + 0.05));
+  document.getElementById('slower').addEventListener('click', () => setSpeed(speed - 0.05));
   function answer(yes) {
     card.classList.remove('finishing');
     if (!yes) return;
@@ -387,8 +398,8 @@ cd hifz
   }
   fetch('waqia.json').then(r => r.json()).then(l => {
     lines = l;
-    box.innerHTML = l.map(s => `<div class="l"></div>`).join('');
-    [...box.children].forEach((el, k) => { el.textContent = l[k]; });
+    box.innerHTML = l.map(s => `<div class="l"></div>`).join('') + '<div class="endhint">Finished? Press Space or scroll</div>';
+    [...box.children].forEach((el, k) => { if (k < l.length) el.textContent = l[k]; });
     render();
   });
   card.addEventListener('keydown', e => {
@@ -397,8 +408,10 @@ cd hifz
       if (e.key === 'Escape' || e.key === 'Backspace') { answer(false); e.preventDefault(); }
       return;
     }
-    if ([' ', 'ArrowDown', 'ArrowRight'].includes(e.key)) { next(); e.preventDefault(); }
-    if (['Backspace', 'ArrowUp', 'ArrowLeft'].includes(e.key)) { prev(); e.preventDefault(); }
+    if ([' ', 'ArrowDown'].includes(e.key)) { next(); e.preventDefault(); }
+    if (['Backspace', 'ArrowUp'].includes(e.key)) { prev(); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { setSpeed(speed + 0.05); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { setSpeed(speed - 0.05); e.preventDefault(); }
   });
   card.addEventListener('click', e => { if (!e.target.closest('button')) { card.focus(); next(); } });
   document.getElementById('next').addEventListener('click', () => { next(); });

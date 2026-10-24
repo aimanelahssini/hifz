@@ -315,7 +315,99 @@ async function audioTest() {
     await sleep(4000);
     await shot('a1-end', pad(rectOf(w), 10));
     out(`lines over time ${JSON.stringify(seen)}`);
+    let log = '';
+    try {
+        log = new TextDecoder().decode(GLib.file_get_contents(GLib.getenv('HIFZ_PLAYLOG'))[1]);
+    } catch (e) {}
+    const events = log.trim().split('\n').map(l => l.split(' ')[1]);
+    const firstPlay = events.indexOf('play');
+    const between = events.slice(firstPlay).filter((e, k, a) => e === 'stop' && a.slice(k).includes('play'));
+    check('auto-continue is gapless (no stop between ayahs)', firstPlay >= 0 && between.length === 0,
+        events.join(','));
     check('auto-continue reaches the last ayah', seen.some(([l]) => l === 4));
+    out('DONE');
+}
+
+// Surah and speed dropdowns, speed on the arrows, the line under the last ayah.
+async function dropdownTest() {
+    Main.overview.hide();
+    await sleep(1000);
+    launch('--surah', '56');
+    const w = await waitWindow();
+    await sleep(1500);
+    w.activate(global.get_current_time());
+    await press(Clutter.KEY_Shift_L);
+    const [x, y] = rectOf(w);
+    const speed = () => progress().speed;
+
+    for (let i = 0; i < 3; i++)
+        await press(Clutter.KEY_Right);
+    await sleep(300);
+    check('right arrow: +0.05 each', speed() === 1.15, `${speed()}`);
+    await press(Clutter.KEY_Left);
+    await sleep(300);
+    check('left arrow: -0.05', speed() === 1.1, `${speed()}`);
+    for (let i = 0; i < 40; i++)
+        await press(Clutter.KEY_Right);
+    await sleep(300);
+    check('speed stops at 2x', speed() === 2, `${speed()}`);
+    for (let i = 0; i < 18; i++)
+        await press(Clutter.KEY_Left);
+    await sleep(300);
+    check('back to 1.1x', speed() === 1.1, `${speed()}`);
+    await shot('v1-header', pad(rectOf(w), 10));
+
+    await press(Clutter.KEY_Down);
+    await press(Clutter.KEY_Down);
+    await press(Clutter.KEY_Up);
+    await sleep(500);
+    check('up and down still move', progress().surahs?.['56']?.line === 1, `${progress().surahs?.['56']?.line}`);
+
+    // The surah dropdown: open, filter by typing 112, Enter.
+    await move(x + 200, y + 120);       // the first virtual pointer event gets lost
+    await sleep(200);
+    await click(x + 60, y + 15);
+    await sleep(800);
+    // Point at a row: its star shows; click it to save that surah.
+    await move(x + 40, y + 166);
+    await sleep(400);
+    await shot('v2-surahs', [x - 100, y, 640, 480]);
+    await click(x + 150, y + 166);
+    await sleep(600);
+    check('star saves a surah', (progress().saved ?? []).length === 1, JSON.stringify(progress().saved));
+    await shot('v2b-saved', [x - 100, y, 640, 480]);
+    await press(Clutter.KEY_Escape);
+    await sleep(400);
+    await click(x + 60, y + 15);
+    await sleep(800);
+    await shot('v2c-reopened', [x - 100, y, 640, 480]);
+    for (const k of [Clutter.KEY_1, Clutter.KEY_1, Clutter.KEY_2]) {
+        await press(k);
+        await sleep(80);
+    }
+    await sleep(400);
+    await shot('v3-filtered', [x - 100, y, 640, 300]);
+    await press(Clutter.KEY_Return);
+    await sleep(1200);
+    check('surah dropdown switches', progress().surah === 112, `${progress().surah}`);
+    check('speed kept after switching', speed() === 1.1);
+
+    // The speed dropdown: open, pick the row below the current one.
+    await click(x + 342, y + 15);
+    await sleep(800);
+    await shot('v4-speeds', [x, y, 640, 480]);
+    await press(Clutter.KEY_Escape);
+    await sleep(400);
+
+    // The end of the surah shows "Finished? Press Space or scroll".
+    w.activate(global.get_current_time());
+    for (let i = 0; i < 4; i++)
+        await press(Clutter.KEY_Down);
+    await sleep(800);
+    await shot('v5-end', pad(rectOf(w), 10));
+    await press(Clutter.KEY_space);
+    await sleep(800);
+    await shot('v6-ask', pad(rectOf(w), 10));
     out('DONE');
 }
 
@@ -327,7 +419,7 @@ export default class HifzTest extends Extension {
             return;
         started = true;
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 3000, () => {
-            const run = MODE === 'audio' ? audioTest() : MODE === 'menu' ? menuTest() : MODE === 'demo' ? import('./demo.js').then(m => m.demo({
+            const run = MODE === 'dropdown' ? dropdownTest() : MODE === 'audio' ? audioTest() : MODE === 'menu' ? menuTest() : MODE === 'demo' ? import('./demo.js').then(m => m.demo({
                 shot, press, click, move, launch, waitWindow, rectOf, hifzWindows, sleep, out, backdrop,
             })) : checks();
             run.catch(e => out(`ERROR ${e}\n${e.stack}`)).finally(() => {

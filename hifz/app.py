@@ -1,5 +1,6 @@
 """The Hifz window: a small fixed-size prompter that slides one ayah up per key press."""
 
+import os
 import sys
 
 import gi
@@ -9,8 +10,8 @@ gi.require_version('Graphene', '1.0')
 from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gtk, Pango  # noqa: E402
 
 from . import APP_ID, quran  # noqa: E402
-from .audio import RECITERS, Downloader, Player  # noqa: E402
-from .state import SPEEDS, State  # noqa: E402
+from .audio import RECITERS, Downloader, Player, file_for  # noqa: E402
+from .state import SPEED_MAX, SPEED_MIN, SPEEDS, State  # noqa: E402
 
 WIDTH, HEIGHT = 440, 212
 PAD = 18
@@ -25,7 +26,7 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.09);
 }
-.head { padding: 0 10px 0 16px; min-height: 30px; }
+.head { padding: 0 10px 0 10px; min-height: 30px; }
 .head label { font-size: 11px; color: rgba(255, 255, 255, 0.52); }
 .head .surah { font-weight: 600; color: rgba(255, 255, 255, 0.72); }
 .head button {
@@ -60,8 +61,8 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
 }
 .lines { padding: 0 20px 0 18px; }
 .content { transition: filter 260ms ease, opacity 260ms ease; }
-.content.blurred { filter: blur(7px); opacity: 0.55; }
-.finish { background: rgba(10, 10, 14, 0.30); border-radius: 18px; }
+.content.blurred { filter: blur(14px); opacity: 0.50; }
+.finish { background: rgba(10, 10, 14, 0.45); border-radius: 18px; }
 .finish .question { font-size: 17px; font-weight: 600; color: white; }
 .finish .sub { font-size: 12px; color: rgba(255, 255, 255, 0.60); }
 .finish button {
@@ -72,6 +73,35 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
 .finish button.yes { background: #ffffff; color: #111114; }
 .finish button.yes:hover { background: rgba(255, 255, 255, 0.86); }
 .hint { font-size: 11px; color: rgba(255, 255, 255, 0.50); }
+.head .pick { padding: 1px 6px; min-height: 20px; }
+.head .pick label { color: rgba(255, 255, 255, 0.72); }
+.head .pick .num { color: rgba(255, 255, 255, 0.45); font-weight: 600; }
+.head .pick image { color: rgba(255, 255, 255, 0.40); }
+.head .speed label { font-weight: 700; font-feature-settings: "tnum"; }
+.endhint {
+  font-size: 14px; font-weight: 600; font-style: italic; color: rgba(233, 196, 106, 0.90);
+  transition: opacity 360ms ease;
+}
+.endhint.far { opacity: 0.35; }
+popover.dropdown > contents { padding: 6px; min-width: 0; }
+popover.dropdown list { background: none; }
+popover.dropdown row { border-radius: 8px; padding: 5px 8px; min-height: 0; }
+popover.dropdown row .num { color: alpha(currentColor, 0.45); font-feature-settings: "tnum"; }
+popover.dropdown row .done { color: alpha(currentColor, 0.45); font-size: 12px; }
+popover.dropdown row.here { background: rgba(233, 196, 106, 0.16); }
+popover.dropdown row.here label { font-weight: 700; }
+popover.dropdown entry { margin-bottom: 6px; }
+popover.dropdown row .recited { color: #7ee2a8; }
+popover.dropdown .section { font-size: 11px; font-weight: 700; color: alpha(currentColor, 0.5);
+  padding: 8px 8px 3px; }
+popover.dropdown row button.star {
+  min-height: 20px; min-width: 20px; padding: 0; background: none; box-shadow: none;
+  color: alpha(currentColor, 0.55); opacity: 0; transition: opacity 120ms ease;
+}
+popover.dropdown row:hover button.star { opacity: 1; }
+popover.dropdown list row button.star.on { opacity: 1; }
+popover.dropdown list row button.star.on image,
+popover.dropdown list row button.star:hover image { color: #e9c46a; }
 """
 
 
@@ -117,7 +147,7 @@ class Prompter(Adw.ApplicationWindow):
         self.add_css_class('hifz')
 
         self.audio_on = False      # always starts muted
-        self.player = Player(self._audio_ended)
+        self.player = Player(self._audio_ended, self._audio_next)
         self.player.set_speed(state.speed)
         self.downloads = Downloader()
         self.anim = None
@@ -161,6 +191,24 @@ class Prompter(Adw.ApplicationWindow):
         head.set_size_request(-1, HEAD)
         self.title = Gtk.Label(xalign=0)
         self.title.add_css_class('surah')
+        self.number = Gtk.Label()
+        self.number.add_css_class('num')
+        pick = Gtk.Box(spacing=5)
+        pick.append(self.number)
+        pick.append(self.title)
+        pick.append(Gtk.Image(icon_name='pan-down-symbolic', pixel_size=10))
+        self.surah_pop = self._dropdown(search=True)
+        self.surah_btn = Gtk.MenuButton(child=pick, popover=self.surah_pop, valign=Gtk.Align.CENTER,
+                                        tooltip_text='Choose a surah')
+        self.surah_btn.add_css_class('pick')
+        self.surah_pop.connect('show', lambda *_: self._fill_surahs())
+        self.speed_label = Gtk.Label()
+        self.speed_pop = self._dropdown()
+        self.speed_btn = Gtk.MenuButton(child=self.speed_label, popover=self.speed_pop,
+                                        valign=Gtk.Align.CENTER, tooltip_text='Speed (← and →)')
+        self.speed_btn.add_css_class('pick')
+        self.speed_btn.add_css_class('speed')
+        self.speed_pop.connect('show', lambda *_: self._fill_speeds())
         self.where = Gtk.Label(xalign=0)
         self.where.set_hexpand(True)
         close = Gtk.Button(icon_name='window-close-symbolic', tooltip_text='Close (Ctrl+Q)',
@@ -179,7 +227,7 @@ class Prompter(Adw.ApplicationWindow):
         count_box.append(self.count)
         self.count_box = count_box
         count_box.set_tooltip_text('Times you finished this surah')
-        for w in (self.title, self.where, close, self.spinner, self.audio_btn, count_box):
+        for w in (self.surah_btn, self.where, close, self.spinner, self.speed_btn, self.audio_btn, count_box):
             w.set_focusable(False)
             head.append(w)
         self.content.append(head)
@@ -291,10 +339,15 @@ class Prompter(Adw.ApplicationWindow):
         for v in self.views:
             v.ar.set_visible(self.state.show_arabic)
             self.box.append(v)
+        # Under the last ayah: what to do once you get there.
+        self.endhint = Gtk.Label(label='Finished? Press Space or scroll', xalign=0)
+        self.endhint.add_css_class('endhint')
+        self.box.append(self.endhint)
         spacer = Gtk.Box()
         spacer.set_size_request(-1, VIEW)          # lets the last line slide to the top
         self.box.append(spacer)
         self.title.set_label(quran.name(n))
+        self.number.set_label(str(n))
         self.index = min(self.state.line(n), len(self.lines) - 1)
         self._hide_finish()
         self._refresh()
@@ -326,6 +379,9 @@ class Prompter(Adw.ApplicationWindow):
         line = self.lines[self.index]
         total = quran.SURAHS[self.surah - 1][1]
         self.where.set_label(f'  ·  {line.ayah} / {total}' if line.ayah else '  ·  Bismillah')
+        last = len(self.lines) - 1
+        (self.endhint.remove_css_class if last - self.index <= 3 else self.endhint.add_css_class)('far')
+        self.speed_label.set_label(f'{fmt_speed(self.state.speed)}×')
         n = self.state.finished(self.surah)
         self.count.set_label(str(n))
         (self.count_box.add_css_class if n == 0 else self.count_box.remove_css_class)('zero')
@@ -339,7 +395,7 @@ class Prompter(Adw.ApplicationWindow):
         self.anim.set_easing(Adw.Easing.EASE_OUT_CUBIC)
         self.anim.play()
 
-    def go(self, i, slow=False):
+    def go(self, i, slow=False, play=True):
         i = max(0, min(i, len(self.lines) - 1))
         self.index = i
         self.state.set_line(self.surah, i)
@@ -348,7 +404,7 @@ class Prompter(Adw.ApplicationWindow):
         y = self._y(i)
         if y is not None:
             self._slide_to(y, 700 if slow else SLIDE_MS)
-        if self.audio_on:
+        if self.audio_on and play:
             self._play_current()
 
     def next(self):
@@ -441,6 +497,7 @@ class Prompter(Adw.ApplicationWindow):
                 self.audio_btn.set_icon_name('audio-volume-high-symbolic')
                 self.audio_btn.set_tooltip_text('Recitation on (M)')
                 self.player.play(path)
+                self._queue_next()
             else:
                 # No connection, or the server is down: say so on the speaker.
                 self.audio_btn.set_icon_name('network-offline-symbolic')
@@ -468,6 +525,21 @@ class Prompter(Adw.ApplicationWindow):
             self.spinner.stop()
             self.spinner.set_visible(False)
 
+    def _queue_next(self):
+        """With "continue automatically", line up the next ayah so it follows without a gap."""
+        self.player.queued = None
+        if self.audio_on and self.state.auto and self.index + 1 < len(self.lines):
+            path, _ = file_for(self.state.reciter, self.surah, self.lines[self.index + 1].ayah)
+            if os.path.exists(path):
+                self.player.queued = path
+
+    def _audio_next(self):
+        # The queued ayah has started playing: move the text along with it.
+        if self.finishing or self.index + 1 >= len(self.lines):
+            return
+        self.go(self.index + 1, play=False)
+        self._queue_next()
+
     def _audio_ended(self):
         if not (self.audio_on and self.state.auto) or self.finishing:
             return
@@ -479,10 +551,175 @@ class Prompter(Adw.ApplicationWindow):
     # ---------- menu actions ----------
 
     def _set_speed(self, action, value):
-        action.set_state(value)
-        self.state.speed = float(value.get_string())
+        self.set_speed(float(value.get_string()))
+
+    def set_speed(self, speed):
+        """Any speed from 0.5x to 2x, in steps of 0.05; it is saved for next time."""
+        speed = round(min(SPEED_MAX, max(SPEED_MIN, speed)) * 20) / 20
+        self.state.speed = speed
         self.state.save()
-        self.player.set_speed(self.state.speed)
+        self.player.set_speed(speed)
+        self.lookup_action('speed').set_state(GLib.Variant('s', fmt_speed(speed)))
+        self.speed_label.set_label(f'{fmt_speed(speed)}×')
+
+    # ---------- dropdowns ----------
+
+    def _dropdown(self, search=False):
+        pop = Gtk.Popover(has_arrow=False)
+        pop.add_css_class('dropdown')
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        pop.entry = None
+        if search:
+            pop.entry = Gtk.SearchEntry(placeholder_text='Number or name')
+            box.append(pop.entry)
+        pop.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        pop.list.set_activate_on_single_click(True)
+        pop.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
+                                        propagate_natural_height=True, max_content_height=300)
+        pop.scroll.set_child(pop.list)
+        box.append(pop.scroll)
+        pop.set_child(box)
+        # Give the keyboard back to the card, without a focus ring on the header button.
+        pop.connect('closed', lambda *_: GLib.idle_add(lambda: self.set_focus(None) or False))
+        return pop
+
+    def _rows(self, pop, items, current, on_pick):
+        """Fill a dropdown with (value, [labels]) rows and scroll to the current one."""
+        pop.list.remove_all()
+        here = None
+        for value, labels in items:
+            row = Gtk.ListBoxRow()
+            row.value = value
+            line = Gtk.Box(spacing=10)
+            for text, cls, expand in labels:
+                lab = Gtk.Label(label=text, xalign=1 if cls == 'num' else 0, hexpand=expand)
+                if cls:
+                    lab.add_css_class(cls)
+                if cls == 'num':
+                    lab.set_width_chars(3)
+                line.append(lab)
+            row.set_child(line)
+            if value == current:
+                row.add_css_class('here')
+                here = row
+            pop.list.append(row)
+        if getattr(pop, 'handler', None):
+            pop.list.disconnect(pop.handler)
+        pop.handler = pop.list.connect('row-activated', lambda _l, row: (pop.popdown(), on_pick(row.value)))
+
+        def scroll():
+            if here is not None:
+                ok, p = here.compute_point(pop.list, Graphene.Point())
+                if ok:
+                    adj = pop.scroll.get_vadjustment()
+                    adj.set_value(max(0, p.y - adj.get_page_size() / 2 + here.get_height() / 2))
+            return GLib.SOURCE_REMOVE
+        GLib.idle_add(scroll)
+
+    def _fill_surahs(self, keep_scroll=False):
+        """Saved surahs first, then all 114. Finished ones are green; a star saves one."""
+        pop = self.surah_pop
+        adj = pop.scroll.get_vadjustment()
+        top = adj.get_value()
+        pop.list.remove_all()
+        here = None
+        rows = [(n, 'saved') for n in self.state.saved] + [(n, 'all') for n in range(1, 115)]
+        for n, section in rows:
+            row = Gtk.ListBoxRow()
+            row.value, row.section = n, section
+            line = Gtk.Box(spacing=10)
+            num = Gtk.Label(label=str(n), xalign=1, width_chars=3)
+            num.add_css_class('num')
+            name = Gtk.Label(label=quran.name(n), xalign=0, hexpand=True)
+            done = self.state.finished(n)
+            if done:
+                name.add_css_class('recited')
+            count = Gtk.Label(label=f'✓{done}' if done else '')
+            count.add_css_class('done')
+            saved = n in self.state.saved
+            star = Gtk.Button(icon_name='starred-symbolic' if saved else 'non-starred-symbolic',
+                              tooltip_text='Remove from saved' if saved else 'Save', focusable=False)
+            star.add_css_class('star')
+            if saved:
+                star.add_css_class('on')
+            star.connect('clicked', lambda _b, n=n: self._toggle_saved(n))
+            for w in (num, name, count, star):
+                line.append(w)
+            row.set_child(line)
+            if n == self.surah and (section == 'all' or here is None):
+                row.add_css_class('here')
+                if section == 'all':
+                    here = row
+            pop.list.append(row)
+        pop.list.set_header_func(self._section_header if self.state.saved else None)
+        if getattr(pop, 'handler', None):
+            pop.list.disconnect(pop.handler)
+        pop.handler = pop.list.connect('row-activated', lambda _l, row: (pop.popdown(), self._pick_surah(row.value)))
+
+        def scroll():
+            if keep_scroll:
+                adj.set_value(top)
+            elif self.state.saved:
+                adj.set_value(0)       # your saved surahs first
+            elif here is not None:
+                ok, p = here.compute_point(pop.list, Graphene.Point())
+                if ok:
+                    adj.set_value(max(0, p.y - adj.get_page_size() / 2 + here.get_height() / 2))
+            return GLib.SOURCE_REMOVE
+        GLib.idle_add(scroll)
+        if keep_scroll:
+            return
+        entry = pop.entry
+        entry.set_text('')
+        if not getattr(entry, 'wired', False):
+            entry.wired = True
+            entry.connect('search-changed', lambda e: pop.list.invalidate_filter())
+            entry.connect('activate', lambda e: self._pick_first())
+            entry.connect('stop-search', lambda e: pop.popdown())
+            pop.list.set_filter_func(self._match)
+        GLib.idle_add(lambda: entry.grab_focus() and False)
+
+    def _section_header(self, row, before):
+        if before is None or before.section != row.section:
+            label = Gtk.Label(label='Saved' if row.section == 'saved' else 'All surahs', xalign=0)
+            label.add_css_class('section')
+            row.set_header(label)
+        else:
+            row.set_header(None)
+
+    def _toggle_saved(self, n):
+        self.state.toggle_saved(n)
+        self.state.save()
+        self._fill_surahs(keep_scroll=True)
+
+    def _match(self, row):
+        q = self.surah_pop.entry.get_text().strip()
+        if not q:
+            return True
+        if row.section == 'saved':
+            return False           # while searching, each surah once
+        if q.isdigit():
+            return str(row.value).startswith(q)
+        from .cli import plain
+        q = plain(q).rstrip('h')
+        return q in plain(quran.name(row.value))
+
+    def _pick_first(self):
+        row = self.surah_pop.list.get_first_child()
+        while row is not None and not (row.get_mapped() and row.get_child_visible()):
+            row = row.get_next_sibling()
+        if row is not None:
+            self.surah_pop.popdown()
+            self._pick_surah(row.value)
+
+    def _pick_surah(self, n):
+        if n != self.surah:
+            self.load_surah(n)
+
+    def _fill_speeds(self):
+        steps = [round(SPEED_MIN + k * 0.05, 2) for k in range(int((SPEED_MAX - SPEED_MIN) / 0.05) + 1)]
+        items = [(v, [(f'{fmt_speed(v)}×', None, True)]) for v in steps]
+        self._rows(self.speed_pop, items, round(self.state.speed, 2), self.set_speed)
 
     def _set_reciter(self, action, value):
         action.set_state(value)
@@ -507,6 +744,8 @@ class Prompter(Adw.ApplicationWindow):
         action.set_state(GLib.Variant('b', on))
         self.state.auto = on
         self.state.save()
+        if self.player.playing:
+            self._queue_next()
 
     def _menu_at(self, gesture, n, x, y):
         r = Gdk.Rectangle()
@@ -518,6 +757,8 @@ class Prompter(Adw.ApplicationWindow):
     # ---------- input ----------
 
     def _key(self, ctl, keyval, code, mods):
+        if self.surah_pop.get_visible() or self.speed_pop.get_visible():
+            return False           # typing in a dropdown
         # The input method can hand the same letter key over twice; act on it once.
         stamp = (keyval, ctl.get_current_event_time())
 
@@ -534,10 +775,14 @@ class Prompter(Adw.ApplicationWindow):
             elif keyval in (Gdk.KEY_Escape, Gdk.KEY_n, Gdk.KEY_BackSpace):
                 self.answer(False)
             return True
-        if keyval in (Gdk.KEY_space, Gdk.KEY_Down, Gdk.KEY_Right, Gdk.KEY_Page_Down, Gdk.KEY_j):
+        if keyval in (Gdk.KEY_space, Gdk.KEY_Down, Gdk.KEY_Page_Down, Gdk.KEY_j):
             self.next()
-        elif keyval in (Gdk.KEY_BackSpace, Gdk.KEY_Up, Gdk.KEY_Left, Gdk.KEY_Page_Up, Gdk.KEY_k):
+        elif keyval in (Gdk.KEY_BackSpace, Gdk.KEY_Up, Gdk.KEY_Page_Up, Gdk.KEY_k):
             self.prev()
+        elif keyval in (Gdk.KEY_Right, Gdk.KEY_plus, Gdk.KEY_KP_Add):
+            self.set_speed(self.state.speed + 0.05)
+        elif keyval in (Gdk.KEY_Left, Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
+            self.set_speed(self.state.speed - 0.05)
         elif keyval in (Gdk.KEY_m, Gdk.KEY_M):
             self.toggle_audio()
         elif keyval in (Gdk.KEY_a, Gdk.KEY_A):

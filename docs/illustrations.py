@@ -85,7 +85,7 @@ def count(x, y, n, bump=False):
 
 
 def card(x, y, index=4, finished=3, audio=False, blur=False, surah="Al-Wâqi'a", lines=None,
-         total=96, scale=1.0, shadow=True, offset=0.0):
+         total=96, scale=1.0, shadow=True, offset=0.0, number=56, speed='1×'):
     """The Hifz card at (x, y). index: the current line (0 = basmala). offset: 0..1 of a slide."""
     lines = lines or LINES
     g = [f'<g transform="translate({x},{y}) scale({scale})">']
@@ -95,8 +95,15 @@ def card(x, y, index=4, finished=3, audio=False, blur=False, surah="Al-Wâqi'a",
              'stroke="#fff" stroke-opacity="0.10"/>')
     inner = []
     where = f'·  {index} / {total}' if index else '·  Bismillah'
-    inner.append(t(16, 19.5, surah, 11, '#fff', 600, opacity=0.74))
-    inner.append(t(16 + 6.4 * len(surah) + 10, 19.5, where, 11, '#fff', 400, opacity=0.5))
+    # Surah number and name (a dropdown), where you are, the speed, the speaker.
+    inner.append(t(16, 19.5, str(number), 11, '#fff', 600, opacity=0.45))
+    nx = 16 + 7 * len(str(number)) + 5
+    inner.append(t(nx, 19.5, surah, 11, '#fff', 600, opacity=0.74))
+    cx = nx + 6.4 * len(surah) + 6
+    inner.append(f'<path d="M{cx} 14.5l3 3 3-3" fill="none" stroke="#fff" stroke-opacity="0.45" '
+                 'stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>')
+    inner.append(t(cx + 16, 19.5, where, 11, '#fff', 400, opacity=0.5))
+    inner.append(t(W - 80, 19.5, speed, 11, '#fff', 700, 'end', 0.55))
     inner.append(speaker(W - 66, 12.5, audio, opacity=1 if audio else 0.45))
     inner.append(count(W - 12, 11, finished))
     # The lines: current one white, the next ones grey and fading. Long ones wrap.
@@ -248,7 +255,7 @@ def menu():
     w, h = 1200, 640
     body = f'<rect width="{w}" height="{h}" rx="22" fill="url(#wall)"/>'
     cx, cy = 60, 60
-    body += card(cx, cy, index=7, finished=3, audio=True)
+    body += card(cx, cy, index=7, finished=3, audio=True, speed='1.25×')
     mx, my = cx + 300, cy + 96
     items = ['0.5×', '0.75×', '1×', '1.1×', '1.25×', '1.5×', '1.75×', '2×']
     mh = 34 + len(items) * 30 + 12 + 4 * 30 + 12 + 2 * 30 + 10

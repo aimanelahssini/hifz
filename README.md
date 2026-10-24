@@ -28,12 +28,18 @@ recited, at the speed you choose.
 - **Recitation that follows you.** The sound is off when Hifz opens, and off means no audio
   stream at all, not a quiet one. Turn it on (the speaker, or **M**) and the ayah at the top is
   recited; press Space and the next one starts. With **Continue automatically** the recitation
-  carries on and the text follows it.
-- **Speed.** Right-click to pick 0.5×, 0.75×, 1×, 1.1×, 1.25×, 1.5×, 1.75× or 2×. The voice
-  keeps its pitch at every speed.
+  carries on without a gap between ayahs, and the text slides as each one begins.
+- **Speed.** **→** and **←** change it by 0.05×, from 0.5× to 2×; it's shown next to the
+  speaker, where a click opens the list, and it's kept for next time. The voice keeps its
+  pitch at every speed.
+- **Switch surah from the card.** Click the surah's name (with its number) for a list of all
+  114, with a search box: type `112` or `ikhlas` and press Enter. The ones you've finished are
+  green. Point at one and click its star to save it: saved surahs come first in the list (and
+  get a ★ in `quran`'s list).
 - **Picks up where you left off.** Close it and open it again: same surah, same ayah.
 - **Counts your rounds.** At the last ayah, Space asks **Finished Al-Wâqi'a?** over the
-  blurred text. **Yes** adds one to the small counter in the top-right corner and goes back to
+  blurred text (a gold *Finished? Press Space or scroll* under the last ayah tells you it's
+  coming). **Yes** adds one to the small counter in the top-right corner and goes back to
   the start; **Not yet** leaves you on the last ayah.
 
 <p align="center"><img src="docs/slide.svg" width="860" alt="Pressing Space slides the text up by one ayah: the next ayah becomes white at the top and the following ones stay grey"></p>
@@ -54,7 +60,8 @@ quran stats      # how many times you finished each surah
 hifz             # open the last surah without asking (also in the app grid)
 ```
 
-If Hifz is already open, `quran` switches it to the surah you pick.
+If Hifz is already open, `quran` switches it to the surah you pick. You can also click the
+surah's name on the card.
 
 ## Keys and menu
 
@@ -62,8 +69,9 @@ Click the card once so it has the keyboard, then:
 
 | Key | Does |
 | --- | --- |
-| **Space**, ↓, → | Next ayah |
-| **Backspace**, ↑, ← | Previous ayah |
+| **Space**, ↓ | Next ayah |
+| **Backspace**, ↑ | Previous ayah |
+| →, ← | Faster, slower (0.05× a step, from 0.5× to 2×) |
 | **M** | Recitation on or off |
 | **A** | Show or hide the Arabic |
 | **Home** | Back to the beginning |
