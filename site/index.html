@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hifz · Learn a surah by heart</title>
+<meta name="description" content="A small Quran prompter for GNOME. One ayah at a time in French phonetics, always on top in the corner of your screen, with a recitation that follows you.">
+<meta property="og:title" content="Hifz · Learn a surah by heart">
+<meta property="og:description" content="One ayah at a time, in the corner of your screen. Press Space for the next one.">
+<meta property="og:image" content="assets/demo-poster.jpg">
+<meta name="theme-color" content="#0e1018">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f17;
+  --bg2: #131726;
+  --panel: rgba(255, 255, 255, 0.04);
+  --line: rgba(255, 255, 255, 0.09);
+  --text: #eceef4;
+  --muted: #a2a8bb;
+  --dim: #6f768c;
+  --gold: #e9c46a;
+  --gold2: #d9a441;
+  --teal: #3b6e6a;
+  --radius: 20px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+img, video { max-width: 100%; display: block; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* nav */
+nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px);
+  background: rgba(13, 15, 23, 0.72); border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; align-items: center; gap: 12px; height: 60px; }
+nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; }
+nav .brand img { width: 30px; height: 30px; }
+nav .links { margin-left: auto; display: flex; gap: 22px; align-items: center; font-size: 14px; }
+nav .links a { text-decoration: none; color: var(--muted); }
+nav .links a:hover { color: var(--text); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 999px;
+  font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid var(--line);
+  background: var(--panel); color: var(--text); cursor: pointer; transition: background .2s, transform .2s; }
+.btn:hover { background: rgba(255, 255, 255, 0.09); }
+.btn.gold { background: linear-gradient(135deg, #f6d98b, var(--gold2)); color: #1a1d2b; border: 0; }
+.btn.gold:hover { transform: translateY(-1px); }
+nav .btn { padding: 7px 14px; font-size: 13px; }
+
+/* hero */
+.hero { position: relative; overflow: hidden; padding: 84px 0 40px;
+  background: radial-gradient(900px 500px at 85% -10%, rgba(233, 196, 106, 0.16), transparent 60%),
+              radial-gradient(800px 600px at 10% 110%, rgba(59, 110, 106, 0.35), transparent 60%),
+              linear-gradient(180deg, #121a2e, var(--bg)); }
+.hero .grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+.eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; color: var(--gold);
+  border: 1px solid rgba(233, 196, 106, 0.3); background: rgba(233, 196, 106, 0.08);
+  padding: 5px 12px; border-radius: 999px; font-weight: 600; }
+h1 { font-size: clamp(38px, 5.4vw, 62px); line-height: 1.05; letter-spacing: -0.035em; margin: 20px 0 18px; font-weight: 800; }
+h1 span { background: linear-gradient(135deg, #f6d98b, var(--gold2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lead { font-size: 19px; color: var(--muted); max-width: 540px; margin: 0 0 30px; }
+.cta { display: flex; gap: 12px; flex-wrap: wrap; }
+.small { font-size: 13px; color: var(--dim); margin-top: 16px; }
+
+/* the try-it card */
+.stage { position: relative; border-radius: 26px; padding: 34px 28px 30px; min-height: 360px;
+  background: linear-gradient(135deg, #1e2a4a, #284b63 55%, #3b6e6a);
+  border: 1px solid var(--line); box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.6); }
+.stage .bar { position: absolute; left: 0; right: 0; top: 0; height: 22px; background: #000;
+  border-radius: 26px 26px 0 0; display: flex; justify-content: center; align-items: center;
+  font-size: 11px; font-weight: 700; }
+.card { position: relative; margin: 26px 0 0 auto; width: 100%; max-width: 440px; height: 212px;
+  background: rgba(16, 16, 20, 0.80); border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 18px; overflow: hidden; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  outline: none; cursor: pointer; user-select: none; }
+.card:focus-visible { box-shadow: 0 0 0 3px rgba(233, 196, 106, 0.6); }
+.card .head { height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px 0 16px;
+  font-size: 11px; color: rgba(255, 255, 255, 0.5); }
+.card .head b { color: rgba(255, 255, 255, 0.74); font-weight: 600; }
+.card .head .sp { flex: 1; }
+.card .count { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.08); border-radius: 999px; padding: 1px 8px 1px 6px; transition: background .3s, color .3s; }
+.card .count.bump { background: rgba(120, 220, 160, 0.32); color: #fff; }
+.card .spk { width: 22px; height: 22px; display: grid; place-items: center; opacity: .45; }
+.card .view { position: absolute; left: 0; right: 0; top: 36px; bottom: 0; overflow: hidden; }
+.card .lines { padding: 0 20px 0 18px; transition: transform .42s cubic-bezier(.22, .61, .36, 1); }
+.card .l { font-size: 19px; font-weight: 500; line-height: 23px; margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.56); transition: color .36s, opacity .36s; }
+.card .l.cur { color: #fff; }
+.card .l.d2 { opacity: .78; } .card .l.d3 { opacity: .58; } .card .l.far { opacity: .42; } .card .l.past { opacity: 0; }
+.card .ask { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(10, 10, 14, 0.3); gap: 4px; }
+.card.finishing .head, .card.finishing .view { filter: blur(7px); opacity: .55; }
+.card.finishing .ask { display: flex; }
+.card .ask b { font-size: 17px; }
+.card .ask small { font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+.card .ask div { display: flex; gap: 10px; margin-top: 12px; }
+.card .ask button { border: 0; border-radius: 999px; padding: 7px 18px; font: 600 14px Inter, sans-serif; cursor: pointer;
+  background: rgba(255, 255, 255, 0.12); color: #fff; }
+.card .ask button.yes { background: #fff; color: #111114; }
+.keys { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 22px; color: rgba(255,255,255,.8); font-size: 13px; }
+kbd { font: 600 13px Inter, sans-serif; background: #f4f4f6; color: #2a2a33; border-radius: 8px; padding: 6px 14px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); }
+.keys button { all: unset; cursor: pointer; }
+.keys button:active kbd { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
+
+/* sections */
+section { padding: 88px 0; }
+h2 { font-size: clamp(28px, 3.6vw, 40px); letter-spacing: -0.025em; line-height: 1.15; margin: 0 0 14px; font-weight: 800; }
+.sub { color: var(--muted); font-size: 18px; max-width: 640px; margin: 0 0 40px; }
+.video { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: #000;
+  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.8); }
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.feature { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+.feature .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  background: rgba(233, 196, 106, 0.12); color: var(--gold); margin-bottom: 14px; }
+.feature h3 { margin: 0 0 6px; font-size: 17px; }
+.feature p { margin: 0; color: var(--muted); font-size: 15px; }
+.row { display: grid; grid-template-columns: 1fr 1.5fr; gap: 48px; align-items: center; margin-bottom: 72px; }
+.row.flip { grid-template-columns: 1.5fr 1fr; }
+.row.flip .txt { order: 2; }
+.row img { border-radius: var(--radius); border: 1px solid var(--line); }
+.row h3 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 10px; }
+.row p { color: var(--muted); margin: 0 0 10px; }
+.legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 28px; }
+.legend div { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.legend b { color: var(--gold); font-size: 18px; margin-right: 8px; }
+.legend span { color: var(--muted); font-size: 14px; }
+.sample { background: #101014; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 28px; }
+.sample p { margin: 0 0 6px; font-size: 21px; font-weight: 500; color: rgba(255, 255, 255, 0.5); }
+.sample p:first-child { color: #fff; }
+.sample .ar { font-family: "Amiri", "Noto Naskh Arabic", serif; direction: rtl; text-align: right; font-size: 22px; color: rgba(255,255,255,.75); margin: 0 0 18px; }
+pre { background: #0a0c12; border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; overflow-x: auto;
+  font: 14px/1.7 "JetBrains Mono", monospace; color: #dfe3ee; position: relative; margin: 0; }
+pre .c { color: var(--dim); }
+.copy { position: absolute; top: 12px; right: 12px; font: 600 12px Inter, sans-serif; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(255, 255, 255, 0.06); color: var(--text); cursor: pointer; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+.step { border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; background: var(--panel); }
+.step b { display: block; color: var(--gold); font-size: 13px; margin-bottom: 4px; }
+.step span { color: var(--muted); font-size: 15px; }
+.faq details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+.faq summary { cursor: pointer; font-weight: 600; font-size: 17px; list-style: none; display: flex; justify-content: space-between; }
+.faq summary::after { content: "+"; color: var(--gold); font-size: 22px; line-height: 1; }
+.faq details[open] summary::after { content: "–"; }
+.faq p { color: var(--muted); margin: 10px 0 0; }
+footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--dim); font-size: 14px; }
+footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; }
+footer a { color: var(--muted); }
+@media (max-width: 900px) {
+  .hero .grid, .row, .row.flip { grid-template-columns: 1fr; gap: 32px; }
+  .row.flip .txt { order: 0; }
+  .features, .steps, .legend { grid-template-columns: 1fr; }
+  nav .links a.hide { display: none; }
+  section { padding: 64px 0; }
+  .hero { padding-top: 56px; }
+}
+@media (max-width: 480px) {
+  .wrap { padding: 0 16px; }
+  .stage { padding: 30px 12px 22px; }
+  .card .l { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card .lines, .card .l { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="assets/logo.svg" alt="">Hifz</a>
+    <div class="links">
+      <a class="hide" href="#demo">Demo</a>
+      <a class="hide" href="#features">Features</a>
+      <a class="hide" href="#install">Install</a>
+      <a class="btn" href="https://github.com/aimanelahssini/hifz">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap grid">
+    <div>
+      <span class="eyebrow">Free and open source · for GNOME</span>
+      <h1>Learn a surah by heart, <span>one ayah at a time.</span></h1>
+      <p class="lead">Hifz is a small prompter in the corner of your screen. The ayah you're on is
+        in white, the next ones wait in grey, and <b>Space</b> slides to the next one. Turn the
+        sound on and it's recited with you.</p>
+      <div class="cta">
+        <a class="btn gold" href="#install">Install on GNOME</a>
+        <a class="btn" href="#demo">▶ Watch the demo</a>
+      </div>
+      <p class="small">French phonetics · 114 surahs · 8 reciters · works offline once listened</p>
+    </div>
+    <div>
+      <div class="stage" aria-label="Try it: a working copy of the Hifz card">
+        <div class="bar">Fri 14:05</div>
+        <div class="card" id="card" tabindex="0" role="application" aria-label="Hifz card. Press Space for the next ayah, Backspace for the previous one.">
+          <div class="head"><b>Al-Wâqi'a</b><span id="where">·  Bismillah</span><span class="sp"></span>
+            <span class="spk" aria-hidden="true"><svg width="15" height="14" viewBox="0 0 15 14" fill="#fff"><path d="M0 4.5h3l4-3.5v12l-4-3.5H0z"/><path d="M9.5 4.5l4 4m0-4l-4 4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            <span class="count" id="count"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.3l2.4 2.4 4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="n">0</span></span>
+          </div>
+          <div class="view"><div class="lines" id="lines"></div></div>
+          <div class="ask"><b>Finished Al-Wâqi'a?</b><small id="so-far">It will count as your first time</small>
+            <div><button id="no">Not yet</button><button class="yes" id="yes">Yes, I finished</button></div></div>
+        </div>
+        <div class="keys">Try it: <button id="prev" aria-label="Previous ayah"><kbd>⌫</kbd></button><button id="next" aria-label="Next ayah"><kbd>Space</kbd></button></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="demo">
+  <div class="wrap">
+    <h2>See it in a minute and a half</h2>
+    <p class="sub">From the terminal to the last ayah of Al-Wâqi'a: pick a surah, read with Space, turn
+      on the recitation, speed it up, close it, open it again where you left off, and finish.</p>
+    <div class="video">
+      <video controls preload="metadata" poster="assets/demo-poster.jpg" playsinline>
+        <source src="assets/demo.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="padding-top: 0">
+  <div class="wrap">
+    <h2>Small, quiet, and always there</h2>
+    <p class="sub">Everything you need to memorise, nothing in the way of what you're doing.</p>
+    <div class="features">
+      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h12M4 10h9M4 14h6"/></svg></div>
+        <h3>One ayah at a time</h3><p>The current ayah stays at the top in white. Space slides to the next one, Backspace goes back.</p></div>
+      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5"/><rect x="10" y="5.5" width="5.5" height="4" rx="1" fill="currentColor"/></svg></div>
+        <h3>Always on top</h3><p>In the top-right corner, above your windows, on every desktop, until you close it.</p></div>
+      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 7.5h3.5l4.5-4v13l-4.5-4H2z"/><path d="M13 7a4 4 0 0 1 0 6M15.5 4.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>A recitation that follows you</h3><p>Turn the sound on and the ayah at the top is recited. Muted by default, with no sound stream at all.</p></div>
+      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 14a7 7 0 1 1 14 0"/><path d="M10 14l3.5-4.5"/></svg></div>
+        <h3>0.5× to 2×</h3><p>Right-click for the speed: 0.5, 0.75, 1, 1.1, 1.25, 1.5, 1.75 or 2. The voice keeps its pitch.</p></div>
+      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10v14l-5-3.5L5 17z"/></svg></div>
+        <h3>Picks up where you left off</h3><p>Close it any time. Next time it opens on the same surah, at the same ayah.</p></div>
+      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg></div>
+        <h3>Counts your rounds</h3><p>At the last ayah it asks if you finished. Yes adds one to the counter in the corner.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 0">
+  <div class="wrap">
+    <div class="row">
+      <div class="txt"><h3>Type <code>quran</code>, pick a number</h3>
+        <p>The terminal lists the 114 surahs. Type a number (or press Enter for the last one) and
+          Hifz opens in the corner. Close the terminal: Hifz stays.</p>
+        <p><code>quran 56</code> and <code>quran waqia</code> work too.</p></div>
+      <img src="assets/terminal.svg" alt="The quran command lists the 114 surahs with their numbers; typing 56 opens Al-Wâqi'a in the corner" loading="lazy">
+    </div>
+    <div class="row flip">
+      <div class="txt"><h3>A smooth slide, not a jump</h3>
+        <p>No word-by-word highlighting to chase. Each press of Space slides the whole text up by one
+          ayah, so your eyes always come back to the same place.</p>
+        <p>The card keeps the same size for every surah. Long ayahs wrap and scroll inside it.</p></div>
+      <img src="assets/slide.svg" alt="Pressing Space slides the text up by one ayah" loading="lazy">
+    </div>
+    <div class="row">
+      <div class="txt"><h3>Right-click for the rest</h3>
+        <p>Speed, reciter (Mishary Alafasy, Al-Husary, Al-Minshawi, Abdul Basit, As-Sudais, Al-Muaiqly,
+          Ash-Shuraim, Ad-Dosari), continue automatically, the Arabic under each line, and back to
+          the beginning.</p></div>
+      <img src="assets/menu.svg" alt="The right-click menu with speeds and options" loading="lazy">
+    </div>
+    <div class="row flip">
+      <div class="txt"><h3>Finished? Count it.</h3>
+        <p>At the last ayah a question appears over the blurred text. Yes adds one to the small
+          counter and takes you back to the start for the next round.</p>
+        <p>Every round is kept with its date. <code>quran stats</code> shows them all.</p></div>
+      <img src="assets/finish.svg" alt="At the last ayah, Finished Al-Wâqi'a? with Not yet and Yes buttons" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 0">
+  <div class="wrap">
+    <h2>Phonetics written for French readers</h2>
+    <p class="sub">Generated from the verified Tanzil text and written the way it's recited: the article
+      assimilated, letters merged where the reciter merges them, pausal endings at the end of each ayah.</p>
+    <div class="sample">
+      <p>Idhâ waqa'ati-l-wâqi'ah</p>
+      <p class="ar">إِذَا وَقَعَتِ ٱلْوَاقِعَةُ</p>
+      <p>Laysa liwaq'atihâ kâdhibah</p>
+      <p>Khâfidatour-râfi'ah</p>
+    </div>
+    <div class="legend">
+      <div><b>ou</b><span>the Arabic u: qoul</span></div>
+      <div><b>â î oû</b><span>long vowels</span></div>
+      <div><b>ch kh gh</b><span>ش, خ, غ</span></div>
+      <div><b>th dh</b><span>ث, ذ and ظ</span></div>
+      <div><b>'</b><span>hamza or ʿayn</span></div>
+      <div><b>-</b><span>joined as recited: bismi-llâhi</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="install" style="padding-top: 0">
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="sub">For GNOME 50 on Wayland (made on Fedora 44). The installer adds GTK 4, libadwaita and
+      GStreamer if they're missing.</p>
+    <pre id="cmd"><button class="copy" data-copy="git clone https://github.com/aimanelahssini/hifz
+cd hifz
+./install.sh">Copy</button>git clone https://github.com/aimanelahssini/hifz
+cd hifz
+./install.sh</pre>
+    <div class="steps">
+      <div class="step"><b>1 · Log out and back in</b><span>once, so GNOME loads the little extension that keeps Hifz in the corner.</span></div>
+      <div class="step"><b>2 · Type <code>quran</code></b><span>in a terminal and pick a surah. Al-Wâqi'a the first time.</span></div>
+      <div class="step"><b>3 · Click the card, press Space</b><span>and the next ayah slides up. M turns the recitation on.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="faq" style="padding-top: 0">
+  <div class="wrap">
+    <h2>Questions</h2>
+    <details><summary>Does it work offline?</summary><p>The text is in the app, so reading always works. The recitation is downloaded the first time you play each ayah and kept, so a surah you've listened to once works offline afterwards.</p></details>
+    <details><summary>Does it work on other desktops than GNOME?</summary><p>Hifz is a GTK 4 app, so it opens anywhere GTK runs, as a normal window. Keeping it on top in the corner and on every desktop is done by a small GNOME Shell extension.</p></details>
+    <details><summary>Is the phonetic text exact?</summary><p>It follows the recitation closely (assimilation, idghâm, iqlâb, pausal forms), but no transliteration replaces the Arabic. Press A to show the Arabic under each line, and check with a teacher.</p></details>
+    <details><summary>Where is my progress kept?</summary><p>On your computer only, in <code>~/.local/state/hifz/progress.json</code>: the ayah you're at in each surah, how many times you finished it and when, and your settings. Nothing is sent anywhere.</p></details>
+    <details><summary>Is it free?</summary><p>Yes. Hifz is open source under the MIT license. The Quran text is the Tanzil Uthmani text (CC BY 3.0) and the recitations come from everyayah.com.</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Hifz · MIT · Quran text: <a href="https://tanzil.net">Tanzil Project</a> · Recitations: <a href="https://everyayah.com">everyayah.com</a></span>
+    <a href="https://github.com/aimanelahssini/hifz">github.com/aimanelahssini/hifz</a>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const card = document.getElementById('card');
+  const box = document.getElementById('lines');
+  const where = document.getElementById('where');
+  const count = document.getElementById('count');
+  const n = document.getElementById('n');
+  let lines = [], i = 0, done = 0;
+  try { done = +localStorage.getItem('hifz-demo-done') || 0; } catch (e) {}
+  n.textContent = done;
+
+  function render() {
+    [...box.children].forEach((el, k) => {
+      const d = k - i;
+      el.className = 'l' + (d < 0 ? ' past' : d === 0 ? ' cur' : d === 2 ? ' d2' : d === 3 ? ' d3' : d > 3 ? ' far' : '');
+    });
+    const el = box.children[i];
+    if (el) box.style.transform = `translateY(${-el.offsetTop}px)`;
+    where.textContent = i ? `·  ${i} / ${lines.length - 1}` : '·  Bismillah';
+  }
+  function next() {
+    if (card.classList.contains('finishing')) return;
+    if (i >= lines.length - 1) {
+      document.getElementById('so-far').textContent = done ? `Finished ${done} time${done > 1 ? 's' : ''} so far` : 'It will count as your first time';
+      card.classList.add('finishing');
+      return;
+    }
+    i++; render();
+  }
+  function prev() {
+    if (card.classList.contains('finishing')) { card.classList.remove('finishing'); return; }
+    if (i > 0) { i--; render(); }
+  }
+  function answer(yes) {
+    card.classList.remove('finishing');
+    if (!yes) return;
+    done++; n.textContent = done;
+    try { localStorage.setItem('hifz-demo-done', done); } catch (e) {}
+    count.classList.add('bump'); setTimeout(() => count.classList.remove('bump'), 900);
+    i = 0; render();
+  }
+  fetch('waqia.json').then(r => r.json()).then(l => {
+    lines = l;
+    box.innerHTML = l.map(s => `<div class="l"></div>`).join('');
+    [...box.children].forEach((el, k) => { el.textContent = l[k]; });
+    render();
+  });
+  card.addEventListener('keydown', e => {
+    if (card.classList.contains('finishing')) {
+      if (e.key === 'Enter') { answer(true); e.preventDefault(); }
+      if (e.key === 'Escape' || e.key === 'Backspace') { answer(false); e.preventDefault(); }
+      return;
+    }
+    if ([' ', 'ArrowDown', 'ArrowRight'].includes(e.key)) { next(); e.preventDefault(); }
+    if (['Backspace', 'ArrowUp', 'ArrowLeft'].includes(e.key)) { prev(); e.preventDefault(); }
+  });
+  card.addEventListener('click', e => { if (!e.target.closest('button')) { card.focus(); next(); } });
+  document.getElementById('next').addEventListener('click', () => { next(); });
+  document.getElementById('prev').addEventListener('click', () => { prev(); });
+  document.getElementById('yes').addEventListener('click', () => answer(true));
+  document.getElementById('no').addEventListener('click', () => answer(false));
+  window.addEventListener('resize', render);
+  document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => {
+    navigator.clipboard?.writeText(b.dataset.copy).then(() => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy', 1500); });
+  }));
+})();
+</script>
+</body>
+</html>

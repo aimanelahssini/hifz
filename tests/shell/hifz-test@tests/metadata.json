@@ -1,0 +1,1 @@
+{"uuid": "hifz-test@tests", "name": "Hifz test driver", "description": "Drives Hifz in a headless test shell.", "shell-version": ["50"], "version": 1}

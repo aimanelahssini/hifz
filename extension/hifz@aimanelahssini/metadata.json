@@ -1,0 +1,8 @@
+{
+  "uuid": "hifz@aimanelahssini",
+  "name": "Hifz",
+  "description": "Keeps the Hifz Quran prompter in the top-right corner, above other windows and on every desktop.",
+  "shell-version": ["50"],
+  "url": "https://github.com/aimanelahssini/hifz",
+  "version": 1
+}

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Open Hifz on the last surah, without asking.
+HERE="$(dirname "$(readlink -f "$0")")"
+for d in "$HERE/.." "${XDG_DATA_HOME:-$HOME/.local/share}/hifz"; do
+    [ -f "$d/hifz/cli.py" ] && exec env PYTHONPATH="$d" python3 -m hifz.cli --open "$@"
+done
+echo "hifz: Hifz isn't installed (run install.sh)" >&2
+exit 1

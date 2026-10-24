@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Hifz
+GenericName=Quran prompter
+Comment=Learn a surah by heart, one ayah at a time
+Exec=hifz
+Icon=io.github.aimanelahssini.Hifz
+Terminal=false
+Categories=Education;Literature;
+Keywords=quran;coran;surah;sourate;hifz;memorize;teleprompter;
+StartupNotify=false

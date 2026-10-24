@@ -1,0 +1,8 @@
+#!/bin/sh
+# Pick a surah in the terminal; the Hifz window then opens on its own.
+HERE="$(dirname "$(readlink -f "$0")")"
+for d in "$HERE/.." "${XDG_DATA_HOME:-$HOME/.local/share}/hifz"; do
+    [ -f "$d/hifz/cli.py" ] && exec env PYTHONPATH="$d" python3 -m hifz.cli "$@"
+done
+echo "quran: Hifz isn't installed (run install.sh)" >&2
+exit 1

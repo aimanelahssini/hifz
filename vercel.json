@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "buildCommand": "sh site/build.sh",
+  "outputDirectory": "site",
+  "cleanUrls": true
+}
