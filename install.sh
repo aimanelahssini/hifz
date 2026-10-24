@@ -38,6 +38,12 @@ cp -r bin "$DATA/hifz/"
 ln -sf "$DATA/hifz/bin/quran" "$BIN/quran"
 ln -sf "$DATA/hifz/bin/hifz" "$BIN/hifz"
 install -Dm644 "data/$APP.desktop" "$DATA/applications/$APP.desktop"
+# D-Bus can start Hifz for GNOME (a click on the reminder while Hifz is closed).
+mkdir -p "$DATA/dbus-1/services"
+printf '[D-BUS Service]\nName=%s\nExec=%s --gapplication-service\n' "$APP" "$DATA/hifz/bin/hifz-service" \
+    > "$DATA/dbus-1/services/$APP.service"
+dbus-send --session --type=method_call --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+    org.freedesktop.DBus.ReloadConfig 2>/dev/null || true
 install -Dm644 "data/$APP.svg" "$DATA/icons/hicolor/scalable/apps/$APP.svg"
 gtk-update-icon-cache -q -t "$DATA/icons/hicolor" 2>/dev/null || true
 
@@ -54,6 +60,16 @@ if sys.argv[1] not in l:
     l.append(sys.argv[1])
 subprocess.run(['gsettings', 'set', 'org.gnome.shell', 'enabled-extensions', str(l)], check=True)
 PY
+
+# The evening reminder: a notification at 22:00 every day to recite Al-Wâqi'a.
+# Turn it off from the right-click menu, or: systemctl --user disable --now hifz-reminder.timer
+UNITS="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+mkdir -p "$UNITS"
+first_time=1
+[ -f "$UNITS/hifz-reminder.timer" ] && first_time=0
+cp data/systemd/hifz-reminder.service data/systemd/hifz-reminder.timer "$UNITS/"
+systemctl --user daemon-reload 2>/dev/null || true
+[ $first_time = 1 ] && systemctl --user enable --now hifz-reminder.timer 2>/dev/null || true
 
 echo "Installed. Type 'quran' in a terminal to start."
 if ! gnome-extensions info "$UUID" 2>/dev/null | grep -q 'State: ACTIVE'; then

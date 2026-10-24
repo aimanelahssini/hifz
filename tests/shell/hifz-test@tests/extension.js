@@ -411,6 +411,94 @@ async function dropdownTest() {
     out('DONE');
 }
 
+// The 22:00 reminder, Space as pause, the end-of-surah button, finishing into the next surah.
+async function reminderTest() {
+    Main.overview.hide();
+    await sleep(1500);
+    const playLog = () => {
+        try {
+            return new TextDecoder().decode(GLib.file_get_contents(GLib.getenv('HIFZ_PLAYLOG'))[1])
+                .trim().split('\n').map(l => l.split(' ')[1]);
+        } catch (e) {
+            return [];
+        }
+    };
+
+    // Reminder with Hifz closed: a notification; clicking it opens Al-Wâqi'a.
+    launch('--remind');
+    let note = null;
+    for (let t = 0; t < 10000 && !note; t += 250) {
+        await sleep(250);
+        note = Main.messageTray.getSources().flatMap(src => src.notifications ?? [])
+            .find(n => /Wâqi/.test(n.title ?? ''));
+    }
+    check('reminder notification shows', !!note, note ? `${note.title} / ${note.body}` : '');
+    check('no window for the reminder alone', hifzWindows().length === 0);
+    await sleep(2500);
+    note?.activate();
+    let w = await waitWindow(15000);
+    await sleep(1500);
+    check('clicking it opens Hifz on Al-Wâqi\'a', !!w && progress().surah === 56, `${progress().surah}`);
+    w?.delete(global.get_current_time());
+    await sleep(1500);
+
+    // Space pauses and plays while the recitation is on.
+    launch('--surah', '112');
+    w = await waitWindow();
+    await sleep(1500);
+    w.activate(global.get_current_time());
+    await press(Clutter.KEY_Shift_L);
+    const [x, y] = rectOf(w);
+    await press(Clutter.KEY_m);
+    await sleep(1200);
+    await press(Clutter.KEY_space);
+    await sleep(600);
+    let ev = playLog();
+    check('space pauses', ev[ev.length - 1] === 'stop' && (progress().surahs?.['112']?.line ?? 0) === 0, ev.join(','));
+    await press(Clutter.KEY_space);
+    await sleep(600);
+    ev = playLog();
+    check('space plays again', ev[ev.length - 1] === 'resume', ev.join(','));
+    await press(Clutter.KEY_space);
+    await sleep(300);
+    await press(Clutter.KEY_Down);
+    await sleep(800);
+    ev = playLog();
+    check('down while paused moves and recites', progress().surahs['112'].line === 1 && ev[ev.length - 1] === 'play',
+        ev.join(','));
+
+    // The end button: repeat -> next.
+    await move(x + 200, y + 120);
+    await sleep(200);
+    await click(x + 314, y + 15);
+    await sleep(500);
+    await shot('r1-mode', pad(rectOf(w), 10));
+    check('end button cycles', progress().after === 'next', progress().after);
+
+    // Finish: Yes goes to the next surah, on its first line, and nothing plays by itself.
+    w.activate(global.get_current_time());
+    for (let i = 0; i < 4; i++)
+        await press(Clutter.KEY_Down);
+    await sleep(600);
+    await press(Clutter.KEY_space);
+    await sleep(800);
+    await shot('r2-ask', pad(rectOf(w), 10));
+    await press(Clutter.KEY_Return);
+    await sleep(1500);
+    const before = playLog().length;
+    await sleep(2500);
+    check('finished goes to the next surah', progress().surah === 113 && progress().surahs['113'].line === 0,
+        `${progress().surah}`);
+    check('nothing plays by itself after finishing', playLog().slice(before).every(e => e !== 'play'));
+    check('counted', progress().surahs['112'].finished === 1);
+    await shot('r3-after', pad(rectOf(w), 10));
+    await press(Clutter.KEY_space);
+    await sleep(800);
+    ev = playLog();
+    check('space then starts the recitation', ev[ev.length - 1] === 'play', ev.slice(-3).join(','));
+    out('DONE');
+}
+
 let started = false;
 
 export default class HifzTest extends Extension {
@@ -419,7 +507,7 @@ export default class HifzTest extends Extension {
             return;
         started = true;
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 3000, () => {
-            const run = MODE === 'dropdown' ? dropdownTest() : MODE === 'audio' ? audioTest() : MODE === 'menu' ? menuTest() : MODE === 'demo' ? import('./demo.js').then(m => m.demo({
+            const run = MODE === 'reminder' ? reminderTest() : MODE === 'dropdown' ? dropdownTest() : MODE === 'audio' ? audioTest() : MODE === 'menu' ? menuTest() : MODE === 'demo' ? import('./demo.js').then(m => m.demo({
                 shot, press, click, move, launch, waitWindow, rectOf, hifzWindows, sleep, out, backdrop,
             })) : checks();
             run.catch(e => out(`ERROR ${e}\n${e.stack}`)).finally(() => {

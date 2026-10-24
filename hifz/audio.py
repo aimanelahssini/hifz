@@ -161,6 +161,21 @@ class Player:
         self._starting = True
         self.pipe.set_state(Gst.State.PAUSED)
 
+    @property
+    def paused(self):
+        return bool(self.pipe and self.playing and self.pipe.get_state(0)[2] == Gst.State.PAUSED
+                    and not self._starting)
+
+    def pause(self):
+        if self.pipe and self.playing:
+            _log('stop')
+            self.pipe.set_state(Gst.State.PAUSED)
+
+    def resume(self):
+        if self.pipe and self.playing:
+            _log('resume', self.playing, self.speed)
+            self.pipe.set_state(Gst.State.PLAYING)
+
     def set_speed(self, speed):
         self.speed = speed
         _log('speed', speed)

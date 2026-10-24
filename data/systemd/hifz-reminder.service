@@ -1,0 +1,6 @@
+[Unit]
+Description=Hifz: evening reminder to recite Al-Wâqi'a
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/hifz --remind

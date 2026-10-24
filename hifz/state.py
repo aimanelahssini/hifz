@@ -11,6 +11,8 @@ import os
 SPEEDS = (0.5, 0.75, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0)     # the right-click menu
 SPEED_MIN, SPEED_MAX = 0.5, 2.0                          # ← and → go in steps of 0.05
 DEFAULT_SURAH = 56          # Al-Wâqi'a
+# What comes after a finished surah: the same one again, the next, the previous, a random one.
+AFTER = ('repeat', 'next', 'previous', 'shuffle')
 
 
 def state_dir():
@@ -31,6 +33,7 @@ class State:
         self.show_arabic = d.get('show_arabic', False)
         self.auto = d.get('auto', False)
         self.surahs = d.get('surahs', {})
+        self.after = d.get('after', 'repeat') if d.get('after') in AFTER else 'repeat'
         self.saved = [n for n in d.get('saved', []) if isinstance(n, int) and 1 <= n <= 114]
         if not (1 <= int(self.surah) <= 114):
             self.surah = DEFAULT_SURAH
@@ -58,6 +61,7 @@ class State:
                 'reciter': self.reciter,
                 'show_arabic': self.show_arabic,
                 'auto': self.auto,
+                'after': self.after,
                 'saved': self.saved,
                 'surahs': self.surahs,
             }, f, ensure_ascii=False, indent=1)

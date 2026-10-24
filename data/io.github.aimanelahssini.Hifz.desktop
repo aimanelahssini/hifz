@@ -9,3 +9,4 @@ Terminal=false
 Categories=Education;Literature;
 Keywords=quran;coran;surah;sourate;hifz;memorize;teleprompter;
 StartupNotify=false
+DBusActivatable=true

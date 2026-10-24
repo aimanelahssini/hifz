@@ -30,6 +30,11 @@ picture-uri='file://$BG'
 picture-uri-dark='file://$BG'
 picture-options='zoom'}
 KEY
+# The app's desktop file and D-Bus service, so notifications can start it.
+mkdir -p "$T/data/applications" "$T/data/dbus-1/services"
+cp "$REPO/data/io.github.aimanelahssini.Hifz.desktop" "$T/data/applications/"
+printf '[D-BUS Service]\nName=io.github.aimanelahssini.Hifz\nExec=%s --gapplication-service\n' \
+    "$REPO/bin/hifz-service" > "$T/data/dbus-1/services/io.github.aimanelahssini.Hifz.service"
 # A neutral prompt for the terminal in the demo (no user or host name).
 printf '%s\n' "PS1='\$ '" 'PROMPT_COMMAND=' 'unset PROMPT_COMMAND' > "$T/home/.bashrc"
 cp "$T/home/.bashrc" "$T/home/.bash_profile"

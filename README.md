@@ -36,11 +36,18 @@ recited, at the speed you choose.
   114, with a search box: type `112` or `ikhlas` and press Enter. The ones you've finished are
   green. Point at one and click its star to save it: saved surahs come first in the list (and
   get a ★ in `quran`'s list).
-- **Picks up where you left off.** Close it and open it again: same surah, same ayah.
 - **Counts your rounds.** At the last ayah, Space asks **Finished Al-Wâqi'a?** over the
   blurred text (a gold *Finished? Press Space or scroll* under the last ayah tells you it's
-  coming). **Yes** adds one to the small counter in the top-right corner and goes back to
-  the start; **Not yet** leaves you on the last ayah.
+  coming). **Yes** adds one to the small counter in the top-right corner; **Not yet** leaves
+  you on the last ayah. Nothing plays by itself afterwards: it waits on the first line.
+- **What comes next.** The round button in the header picks what follows a finished surah:
+  ↻ the same one again, → the next surah, ← the previous one, or ⤮ a random one (among your
+  saved surahs when you have a few). The question says which: *Then 57 Al-Hadîd*.
+- **An evening reminder.** Every day at 22:00 a notification says it's time for Al-Wâqi'a;
+  clicking it opens Hifz on Al-Wâqi'a, even when Hifz is closed. Right-click →
+  **Remind me at 22:00** turns it off and on.
+- **Opens where you left off.** Every way of opening it (`quran`, `hifz`, the app grid) brings
+  back the surah and the ayah you were on; only the reminder goes to Al-Wâqi'a.
 
 <p align="center"><img src="docs/slide.svg" width="860" alt="Pressing Space slides the text up by one ayah: the next ayah becomes white at the top and the following ones stay grey"></p>
 
@@ -69,7 +76,8 @@ Click the card once so it has the keyboard, then:
 
 | Key | Does |
 | --- | --- |
-| **Space**, ↓ | Next ayah |
+| **Space** | Next ayah; with the recitation on, pause and play (at the last ayah, it asks if you finished) |
+| ↓, scroll | Next ayah (and recite it, if the sound is on) |
 | **Backspace**, ↑ | Previous ayah |
 | →, ← | Faster, slower (0.05× a step, from 0.5× to 2×) |
 | **M** | Recitation on or off |
@@ -128,6 +136,7 @@ still the best way to get every letter right.
 - **Progress:** `~/.local/state/hifz/progress.json`: the surah you're on, the ayah you're at
   in each surah, how many times you finished each one (with the dates), and your speed,
   reciter and options.
+- **Reminder:** a systemd user timer, `~/.config/systemd/user/hifz-reminder.timer`.
 - **Recitations:** downloaded once per ayah from [everyayah.com](https://everyayah.com) when
   the sound is on, and kept in `~/.cache/hifz/audio`, so a surah you've listened to works
   offline afterwards.

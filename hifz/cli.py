@@ -98,6 +98,11 @@ def main(argv=None):
     if argv and argv[0] in ('-h', '--help'):
         print(__doc__.strip())
         return 0
+    if argv and argv[0] == '--remind':
+        # The 22:00 timer: Hifz sends the notification (and quits, if it wasn't open).
+        here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        env = dict(os.environ, PYTHONPATH=here + os.pathsep + os.environ.get('PYTHONPATH', ''))
+        return subprocess.run([sys.executable, '-m', 'hifz', '--remind'], cwd=here, env=env).returncode
     if argv and argv[0] == '--open':
         launch(int(argv[1]) if len(argv) > 1 and argv[1].isdigit() else state.surah)
         return 0

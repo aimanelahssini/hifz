@@ -1,6 +1,8 @@
 """The Hifz window: a small fixed-size prompter that slides one ayah up per key press."""
 
 import os
+import random
+import subprocess
 import sys
 
 import gi
@@ -49,7 +51,7 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
   color: rgba(255, 255, 255, 0.56);
   transition: color 360ms ease, opacity 360ms ease;
 }
-.line.current { color: #ffffff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+.line.current { color: #ffffff; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
 .line.d1 { opacity: 1; }
 .line.d2 { opacity: 0.78; }
 .line.d3 { opacity: 0.58; }
@@ -78,6 +80,8 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
 .head .pick .num { color: rgba(255, 255, 255, 0.45); font-weight: 600; }
 .head .pick image { color: rgba(255, 255, 255, 0.40); }
 .head .speed label { font-weight: 700; font-feature-settings: "tnum"; }
+.head button.mode:active, .head button.mode.flash { color: white; background: rgba(255, 255, 255, 0.18); }
+.finish .then { font-size: 11px; color: rgba(233, 196, 106, 0.85); }
 .endhint {
   font-size: 14px; font-weight: 600; font-style: italic; color: rgba(233, 196, 106, 0.90);
   transition: opacity 360ms ease;
@@ -154,10 +158,13 @@ class Prompter(Adw.ApplicationWindow):
         self.views = []
         self.index = 0
         self.finishing = False
+        self.paused = False        # Space paused the recitation
+        self._then = None
         self.scroll_acc = 0.0
 
         self._build()
         self._actions()
+        self._show_after()
         self.load_surah(surah)
 
         keys = Gtk.EventControllerKey()
@@ -211,6 +218,10 @@ class Prompter(Adw.ApplicationWindow):
         self.speed_pop.connect('show', lambda *_: self._fill_speeds())
         self.where = Gtk.Label(xalign=0)
         self.where.set_hexpand(True)
+        self.where.set_ellipsize(Pango.EllipsizeMode.END)
+        self.mode_btn = Gtk.Button(valign=Gtk.Align.CENTER)
+        self.mode_btn.add_css_class('mode')
+        self.mode_btn.connect('clicked', lambda *_: self.cycle_after())
         close = Gtk.Button(icon_name='window-close-symbolic', tooltip_text='Close (Ctrl+Q)',
                            valign=Gtk.Align.CENTER)
         close.add_css_class('close')
@@ -227,7 +238,8 @@ class Prompter(Adw.ApplicationWindow):
         count_box.append(self.count)
         self.count_box = count_box
         count_box.set_tooltip_text('Times you finished this surah')
-        for w in (self.surah_btn, self.where, close, self.spinner, self.speed_btn, self.audio_btn, count_box):
+        for w in (self.surah_btn, self.where, close, self.spinner, self.mode_btn, self.speed_btn, self.audio_btn,
+                  count_box):
             w.set_focusable(False)
             head.append(w)
         self.content.append(head)
@@ -263,7 +275,9 @@ class Prompter(Adw.ApplicationWindow):
         yes.connect('clicked', lambda *_: self.answer(True))
         row.append(no)
         row.append(yes)
-        for w in (self.question, self.sub, row):
+        self.then = Gtk.Label()
+        self.then.add_css_class('then')
+        for w in (self.question, self.sub, self.then, row):
             inner.append(w)
         fin.append(inner)
         fin.set_visible(False)
@@ -286,6 +300,9 @@ class Prompter(Adw.ApplicationWindow):
         auto = Gio.SimpleAction.new_stateful('auto', None, GLib.Variant('b', self.state.auto))
         auto.connect('activate', self._toggle_auto)
         self.add_action(auto)
+        reminder = Gio.SimpleAction.new_stateful('reminder', None, GLib.Variant('b', reminder_on()))
+        reminder.connect('activate', self._toggle_reminder)
+        self.add_action(reminder)
         audio = Gio.SimpleAction.new_stateful('audio', None, GLib.Variant('b', False))
         audio.connect('activate', lambda *_: self.toggle_audio())
         self.add_action(audio)
@@ -312,6 +329,7 @@ class Prompter(Adw.ApplicationWindow):
         opts.append_submenu('Reciter', reciters)
         opts.append('Continue automatically', 'win.auto')
         opts.append('Show Arabic', 'win.arabic')
+        opts.append(f'Remind me at 22:00 ({quran.name(56)})', 'win.reminder')
         menu.append_section(None, opts)
         end = Gio.Menu()
         end.append('Back to the beginning', 'win.restart')
@@ -357,7 +375,8 @@ class Prompter(Adw.ApplicationWindow):
 
         if self.audio_on:
             self._prefetch_all()
-            self._play_current()
+            if not self.paused:
+                self._play_current()
 
     def _snap(self):
         y = self._y(self.index)
@@ -404,8 +423,10 @@ class Prompter(Adw.ApplicationWindow):
         y = self._y(i)
         if y is not None:
             self._slide_to(y, 700 if slow else SLIDE_MS)
-        if self.audio_on and play:
+        if self.audio_on and play and not self.paused:
             self._play_current()
+        elif self.paused:
+            self.player.halt()
 
     def next(self):
         if self.finishing:
@@ -424,6 +445,29 @@ class Prompter(Adw.ApplicationWindow):
             return
         self.go(self.index + 1)
 
+    def move(self, step):
+        # Moving by hand ends a pause: the ayah you land on is recited.
+        self.paused = False
+        step()
+
+    def space(self):
+        """With the recitation on, Space pauses and plays. At the last ayah, and with the sound
+        off, it moves on as before."""
+        last = self.index >= len(self.lines) - 1
+        if not self.audio_on or last:
+            self.next()
+        elif self.paused:
+            self.paused = False
+            if self.player.playing:
+                self.player.resume()
+            else:
+                self._play_current()
+        elif self.player.playing:
+            self.paused = True
+            self.player.pause()
+        else:
+            self.next()            # this ayah is over: on to the next one
+
     def prev(self):
         if self.finishing:
             self._hide_finish()
@@ -440,13 +484,64 @@ class Prompter(Adw.ApplicationWindow):
 
     def _ask_finish(self):
         self.finishing = True
+        self.player.halt()
         self.question.set_label(f'Finished {quran.name(self.surah)}?')
         n = self.state.finished(self.surah)
         self.sub.set_label('It will count as your first time' if n == 0 else
                            f'Finished {n} time{"s" if n != 1 else ""} so far')
+        self._then = self._after_surah()
+        self.then.set_label('Then from the start' if self._then == self.surah else
+                            f'Then {self._then} {quran.name(self._then)}')
         self.content.add_css_class('blurred')
         self.finish.set_visible(True)
         self.yes_btn.grab_focus()
+
+    def _after_surah(self):
+        """The surah that follows a finished one, as the end button says."""
+        n, mode = self.surah, self.state.after
+        if mode == 'next':
+            return n % 114 + 1
+        if mode == 'previous':
+            return (n - 2) % 114 + 1
+        if mode == 'shuffle':
+            # Among your saved surahs when you have a few, otherwise any.
+            pool = [k for k in self.state.saved if k != n]
+            if len(pool) < 2:
+                pool = [k for k in range(1, 115) if k != n]
+            return random.choice(pool)
+        return n
+
+    AFTER = {
+        'repeat': ('media-playlist-repeat-symbolic', 'At the end: start again'),
+        'next': ('go-next-symbolic', 'At the end: the next surah'),
+        'previous': ('go-previous-symbolic', 'At the end: the previous surah'),
+        'shuffle': ('media-playlist-shuffle-symbolic', 'At the end: a random surah'),
+    }
+
+    def _show_after(self):
+        icon, text = self.AFTER[self.state.after]
+        self.mode_btn.set_icon_name(icon)
+        self.mode_btn.set_tooltip_text(text)
+
+    def cycle_after(self):
+        modes = list(self.AFTER)
+        self.state.after = modes[(modes.index(self.state.after) + 1) % len(modes)]
+        self.state.save()
+        self._show_after()
+        # Say it once in the header, where the ayah number is.
+        short = {'repeat': 'then again', 'next': 'then the next', 'previous': 'then the previous',
+                 'shuffle': 'then random'}
+        self.where.set_label('  ·  ' + short[self.state.after])
+        self.mode_btn.add_css_class('flash')
+        if getattr(self, '_flash_id', 0):
+            GLib.source_remove(self._flash_id)
+
+        def back():
+            self._flash_id = 0
+            self.mode_btn.remove_css_class('flash')
+            self._refresh()
+            return GLib.SOURCE_REMOVE
+        self._flash_id = GLib.timeout_add(1600, back)
 
     def _hide_finish(self):
         self.finishing = False
@@ -459,16 +554,24 @@ class Prompter(Adw.ApplicationWindow):
             return
         self.state.add_finish(self.surah)
         self.state.save()
+        # Nothing plays by itself: it waits on the first line until you go on.
+        self.player.halt()
+        self.paused = True
+        nxt = self._then
+        if nxt != self.surah:
+            self.state.set_line(nxt, 0)
+            self.load_surah(nxt)
+        else:
+            self.go(0, slow=True)
         self.count_box.add_css_class('bump')
         GLib.timeout_add(900, lambda: self.count_box.remove_css_class('bump') or GLib.SOURCE_REMOVE)
-        self.player.halt()
-        self.go(0, slow=True)
 
     # ---------- audio ----------
 
     def toggle_audio(self):
         self.audio_on = not self.audio_on
         self.lookup_action('audio').set_state(GLib.Variant('b', self.audio_on))
+        self.paused = False
         if self.audio_on:
             self.player.start()
             self.player.set_speed(self.state.speed)
@@ -739,6 +842,15 @@ class Prompter(Adw.ApplicationWindow):
         GLib.idle_add(self._snap)
 
 
+    def _toggle_reminder(self, action, _):
+        on = not action.get_state().get_boolean()
+        try:
+            subprocess.run(['systemctl', '--user', 'enable' if on else 'disable', '--now', TIMER],
+                           check=True, capture_output=True, timeout=10)
+        except (OSError, subprocess.SubprocessError):
+            return
+        action.set_state(GLib.Variant('b', on))
+
     def _toggle_auto(self, action, _):
         on = not action.get_state().get_boolean()
         action.set_state(GLib.Variant('b', on))
@@ -775,10 +887,12 @@ class Prompter(Adw.ApplicationWindow):
             elif keyval in (Gdk.KEY_Escape, Gdk.KEY_n, Gdk.KEY_BackSpace):
                 self.answer(False)
             return True
-        if keyval in (Gdk.KEY_space, Gdk.KEY_Down, Gdk.KEY_Page_Down, Gdk.KEY_j):
-            self.next()
+        if keyval == Gdk.KEY_space:
+            self.space()
+        elif keyval in (Gdk.KEY_Down, Gdk.KEY_Page_Down, Gdk.KEY_j):
+            self.move(self.next)
         elif keyval in (Gdk.KEY_BackSpace, Gdk.KEY_Up, Gdk.KEY_Page_Up, Gdk.KEY_k):
-            self.prev()
+            self.move(self.prev)
         elif keyval in (Gdk.KEY_Right, Gdk.KEY_plus, Gdk.KEY_KP_Add):
             self.set_speed(self.state.speed + 0.05)
         elif keyval in (Gdk.KEY_Left, Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
@@ -802,10 +916,10 @@ class Prompter(Adw.ApplicationWindow):
         self.scroll_acc += dy if unit == Gdk.ScrollUnit.WHEEL else dy / 40
         while self.scroll_acc >= 1:
             self.scroll_acc -= 1
-            self.next()
+            self.move(self.next)
         while self.scroll_acc <= -1:
             self.scroll_acc += 1
-            self.prev()
+            self.move(self.prev)
         return True
 
     def _closing(self, *_):
@@ -814,8 +928,23 @@ class Prompter(Adw.ApplicationWindow):
         return False
 
 
+TIMER = 'hifz-reminder.timer'
+
+
+def reminder_on():
+    """Is the daily reminder's systemd timer enabled?"""
+    try:
+        return subprocess.run(['systemctl', '--user', 'is-enabled', TIMER], capture_output=True,
+                              text=True, timeout=5).stdout.strip() == 'enabled'
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def fmt_speed(s):
     return f'{s:g}'
+
+
+REMINDER_SURAH = 56            # the evening reminder: Al-Wâqi'a
 
 
 class App(Adw.Application):
@@ -830,24 +959,54 @@ class App(Adw.Application):
         css.load_from_string(CSS)
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        # Clicking the reminder (even with Hifz closed: GNOME starts it over D-Bus).
+        open_surah = Gio.SimpleAction.new('open-surah', GLib.VariantType('i'))
+        open_surah.connect('activate', lambda _a, v: self.open(v.get_int32()))
+        self.add_action(open_surah)
 
-    def do_command_line(self, cmd):
-        args = cmd.get_arguments()[1:]
-        surah = None
-        if '--surah' in args:
-            try:
-                surah = int(args[args.index('--surah') + 1])
-            except (IndexError, ValueError):
-                surah = None
+    def open(self, surah=None):
+        """Show the window: on `surah` if given, otherwise where you left off."""
         if surah is not None and not 1 <= surah <= 114:
             surah = None
         if self.win is None:
             state = State.load()
             self.win = Prompter(self, state, surah or state.surah)
             self.win.connect('destroy', lambda *_: setattr(self, 'win', None))
-        elif surah:
+        elif surah and surah != self.win.surah:
             self.win.load_surah(surah)
         self.win.present()
+
+    def do_activate(self):
+        # The app grid, or GNOME starting Hifz for a notification.
+        self.open()
+
+    def remind(self):
+        """The evening notification. Clicking it opens Al-Wâqi'a."""
+        name = quran.name(REMINDER_SURAH)
+        n = Gio.Notification.new(f'Time for {name}')
+        n.set_body(f'Recite {name} before you sleep.')
+        n.set_icon(Gio.ThemedIcon.new(APP_ID))
+        action = f'app.open-surah({REMINDER_SURAH})'
+        n.set_default_action(action)
+        n.add_button('Recite now', action)
+        self.send_notification('reminder', n)
+
+    def do_command_line(self, cmd):
+        args = cmd.get_arguments()[1:]
+        if '--remind' in args:
+            self.remind()
+            if self.win is None:
+                # Started only for this: let the notification go out, then quit.
+                self.hold()
+                GLib.timeout_add(1500, lambda: self.release() or GLib.SOURCE_REMOVE)
+            return 0
+        surah = None
+        if '--surah' in args:
+            try:
+                surah = int(args[args.index('--surah') + 1])
+            except (IndexError, ValueError):
+                surah = None
+        self.open(surah)
         return 0
 
 
