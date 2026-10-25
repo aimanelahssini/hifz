@@ -152,6 +152,12 @@ still the best way to get every letter right.
 ./uninstall.sh --all    # removes your progress too
 ```
 
+## On phones
+
+The Android and iPhone apps are planned: a card floating over other apps on Android, the
+Dynamic Island and lock screen on iPhone, the same text and rules as here. How they should
+behave and look is in [docs/mobile/PRD.md](docs/mobile/PRD.md).
+
 ## Development
 
 ```bash
