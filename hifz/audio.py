@@ -89,6 +89,23 @@ def _log(*what):
             f.write(' '.join(str(w) for w in (GLib.get_monotonic_time(),) + what) + '\n')
 
 
+def silence(seconds):
+    """A short silent file, the breath between two ayahs when the recitation continues."""
+    ms = int(round(seconds * 1000))
+    path = os.path.join(os.path.dirname(cache_dir('x')), f'pause-{ms}.wav')
+    if not os.path.exists(path):
+        import wave
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + '.part'
+        with wave.open(tmp, 'wb') as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(44100)
+            w.writeframes(b'\0\0' * (44100 * ms // 1000))
+        os.replace(tmp, path)
+    return path
+
+
 class Player:
     """Plays one ayah at a time. Call start() to create the pipeline and stop() to drop it.
 
@@ -101,8 +118,9 @@ class Player:
         Gst.init(None)
         self.on_end = on_end
         self.on_next = on_next     # a queued ayah has started (gapless)
-        self.queued = None         # the file to go on with when this one ends
-        self._gapless = False
+        self.queued = []           # what follows this file: [a pause,] the next ayah
+        self._gapless = None       # (generation, file) handed over, until it starts
+        self._gen = 0              # a new one at every play or stop: older signals are ignored
         self._starting = False
         self.pipe = None
         self.speed = 1.0
@@ -132,28 +150,35 @@ class Player:
         self.pipe.connect('about-to-finish', self._about_to_finish)
 
     def stop(self):
-        self.queued = None
-        self._gapless = False
         _log('stop')
         if self.pipe:
             self.pipe.set_state(Gst.State.NULL)
+        self._forget()
+        if self.pipe:
             self.pipe.get_bus().remove_signal_watch()
             self.pipe = None
         self.playing = None
 
     def halt(self):
         """Stop the current ayah but keep the pipeline."""
-        self.queued = None
-        self._gapless = False
         _log('stop')
         if self.pipe:
             self.pipe.set_state(Gst.State.READY)
+        self._forget()
         self.playing = None
+
+    def _forget(self):
+        # After the state change: no streaming thread can hand over a file any more, and
+        # whatever it posted before belongs to an older generation.
+        self._gen += 1
+        self.queued = []
+        self._gapless = None
 
     def play(self, path):
         if not self.pipe:
             return
         self.pipe.set_state(Gst.State.READY)
+        self._forget()
         self.pipe.set_property('uri', Gst.filename_to_uri(path))
         self.playing = path
         _log('play', path, self.speed)
@@ -192,23 +217,27 @@ class Player:
                        Gst.SeekType.SET, pos if ok else 0, Gst.SeekType.NONE, 0)
 
     def _about_to_finish(self, pipe):
-        # Runs in a streaming thread: only hand over the file that is already queued.
-        path = self.queued
-        if path and os.path.exists(path):
-            self.queued = None
-            self._gapless = path
-            pipe.set_property('uri', Gst.filename_to_uri(path))
+        # Runs in a streaming thread: hand over the next queued file (a pause, then the ayah).
+        gen, queue = self._gen, self.queued
+        if queue and os.path.exists(queue[0]):
+            self.queued = queue[1:]
+            self._gapless = (gen, queue[0])
+            pipe.set_property('uri', Gst.filename_to_uri(queue[0]))
 
     def _stream_start(self, bus, msg):
-        path = self._gapless
-        if path:
-            self._gapless = False
-            self.playing = path
-            _log('play', path, self.speed)
-            if self.speed != 1.0:
-                self._rate()       # each new stream starts at its own rate 1
-            if self.on_next:
-                self.on_next()
+        handed = self._gapless
+        if not handed or handed[0] != self._gen:
+            return                 # a normal start, or a signal from before the last move
+        self._gapless = None
+        path = handed[1]
+        self.playing = path
+        if self.speed != 1.0:
+            self._rate()           # each new stream starts at its own rate 1
+        if os.path.basename(path).startswith('pause-'):
+            return                 # the breath between two ayahs: the text stays
+        _log('play', path, self.speed)
+        if self.on_next:
+            self.on_next()
 
     def _async_done(self, bus, msg):
         if self._starting:

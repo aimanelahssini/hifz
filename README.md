@@ -24,11 +24,14 @@ recited, at the speed you choose.
   corner, until you close it. It doesn't need the terminal you started it from.
 - **French phonetics.** Written the way French phonetic Qurans write Arabic, and the way it is
   recited: *Idhâ waqa'ati-l-wâqi'ah*, *Khâfidatour-râfi'ah*, *Bismi-llâhi-r-rahmâni-r-rahîm*.
-  Right-click → **Show Arabic** adds the Arabic under each line.
+  That's all the card shows at first. In the settings (the gear), **Language** can switch to
+  **Arabic**, with the phonetics under it, or to a translation; **A** turns the Arabic on and
+  off. The Arabic stays off unless you turn it on.
 - **Recitation that follows you.** The sound is off when Hifz opens, and off means no audio
   stream at all, not a quiet one. Turn it on (the speaker, or **M**) and the ayah at the top is
   recited; press Space and the next one starts. With **Continue automatically** the recitation
-  carries on without a gap between ayahs, and the text slides as each one begins.
+  carries on by itself, with a short breath between ayahs (right-click → **Pause between
+  ayahs**: none, short or long), and the text slides as each one begins.
 - **Speed.** **→** and **←** change it by 0.05×, from 0.5× to 2×; it's shown next to the
   speaker, where a click opens the list, and it's kept for next time. The voice keeps its
   pitch at every speed.

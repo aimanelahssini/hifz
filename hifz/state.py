@@ -15,10 +15,11 @@ DEFAULT_SURAH = 56          # Al-Wâqi'a
 # What comes after a finished surah: the same one again, the next, the previous, a random one.
 AFTER = ('repeat', 'next', 'previous', 'shuffle')
 PHONETICS = ('fr', 'en', 'tr')
-LANGUAGES = ('ar', 'en', 'fr', 'tr', 'id', 'es')
+LANGUAGES = ('ph', 'ar', 'en', 'fr', 'tr', 'id', 'es')     # ph: the phonetics alone
+PAUSES = {'none': 0.0, 'short': 0.35, 'long': 0.9}            # between ayahs, when continuing
 KNOWN = (
     'version', 'surah', 'speed', 'reciter', 'show_arabic', 'language',
-    'phonetics', 'auto', 'after', 'saved', 'surahs',
+    'phonetics', 'auto', 'after', 'saved', 'surahs', 'text_v', 'pause',
 )
 
 
@@ -42,11 +43,12 @@ class State:
         self.surah = d.get('surah', DEFAULT_SURAH)
         self.phonetics = d.get('phonetics') if d.get('phonetics') in PHONETICS else 'fr'
         lang = d.get('language')
-        if lang in LANGUAGES:
-            self.language = lang
-        else:
-            # Older builds only had show_arabic; default to Arabic + transliteration.
-            self.language = 'ar'
+        self.language = lang if lang in LANGUAGES else 'ph'
+        if d.get('text_v') != 2 and self.language == 'ar':
+            # Before the Phonetics mode, Arabic was filled in for everyone: the Arabic text
+            # is off unless you turn it on.
+            self.language = 'ph'
+        self.pause = d.get('pause') if d.get('pause') in PAUSES else 'short'
         self.speed = d.get('speed', 1.0)
         self.reciter = d.get('reciter', 'Alafasy_128kbps')
         self.auto = d.get('auto', False)
@@ -86,6 +88,8 @@ class State:
                 'language': self.language,
                 'show_arabic': self.language == 'ar',
                 'phonetics': self.phonetics,
+                'text_v': 2,
+                'pause': self.pause,
                 'auto': self.auto,
                 'after': self.after,
                 'saved': self.saved,

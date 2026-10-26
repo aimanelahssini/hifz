@@ -1,6 +1,7 @@
 """Literal Quran translations (Tanzil plain-text), keyed by language code.
 
-Arabic is the Uthmani text in quran.py — not listed as a translation file here.
+"Phonetics" (the transliteration alone) and Arabic (with the transliteration under it) are
+not translation files; the others are.
 Basmala (ayah 0 in the prompter) reuses the translation of 1:1.
 """
 
@@ -13,6 +14,7 @@ DATA = os.path.join(os.path.dirname(__file__), 'data', 'trans')
 
 # (code, display name, Tanzil file stem)
 LANGUAGES = [
+    ('ph', 'Phonetics', None),
     ('ar', 'Arabic', None),
     ('en', 'English', 'en.sahih'),
     ('fr', 'French', 'fr.hamidullah'),
@@ -51,8 +53,8 @@ def _by_surah(stem):
 
 
 def text(lang, surah, ayah):
-    """Translation for surah/ayah. ayah 0 (basmala) → 1:1. Empty if lang is Arabic."""
-    if lang == 'ar' or lang not in LANG_CODES:
+    """Translation for surah/ayah. ayah 0 (basmala) → 1:1. Empty for Phonetics and Arabic."""
+    if lang in ('ph', 'ar') or lang not in LANG_CODES:
         return ''
     stem = next(s for c, _, s in LANGUAGES if c == lang)
     if ayah == 0:
@@ -64,10 +66,10 @@ def text(lang, surah, ayah):
 
 
 def available():
-    """Language codes that can be selected (Arabic always; others if the file is present)."""
-    out = ['ar']
+    """Language codes that can be selected (Phonetics and Arabic always; others if the file is present)."""
+    out = ['ph', 'ar']
     for code, _, stem in LANGUAGES:
-        if code == 'ar':
+        if stem is None:
             continue
         if os.path.isfile(os.path.join(DATA, f'{stem}.txt')):
             out.append(code)

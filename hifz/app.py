@@ -12,9 +12,9 @@ gi.require_version('Graphene', '1.0')
 from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gtk, Pango  # noqa: E402
 
 from . import APP_ID, quran  # noqa: E402
-from .audio import RECITERS, Downloader, Player, file_for  # noqa: E402
+from .audio import RECITERS, Downloader, Player, file_for, silence  # noqa: E402
 from .phonetic import STYLES, restyle  # noqa: E402
-from .state import SPEED_MAX, SPEED_MIN, SPEEDS, State  # noqa: E402
+from .state import PAUSES, SPEED_MAX, SPEED_MIN, SPEEDS, State  # noqa: E402
 from .translations import LANG_LABELS, available as available_langs, text as tr_text  # noqa: E402
 
 WIDTH, HEIGHT = 440, 212
@@ -161,7 +161,15 @@ class LineView(Gtk.Box):
         self.apply(state)
 
     def apply(self, state):
-        if state.language == 'ar':
+        if state.language == 'ph':
+            # The phonetics alone, the original look.
+            self.primary.remove_css_class('ar')
+            self.primary.set_xalign(0)
+            self.primary.set_justify(Gtk.Justification.LEFT)
+            self.primary.set_direction(Gtk.TextDirection.LTR)
+            self.primary.set_label(restyle(self.line.phonetic, state.phonetics))
+            self.secondary.set_visible(False)
+        elif state.language == 'ar':
             self.primary.set_label(self.line.arabic)
             self.primary.set_xalign(1)
             self.primary.set_justify(Gtk.Justification.RIGHT)
@@ -217,7 +225,7 @@ class Prompter(Adw.ApplicationWindow):
         self.scroll_acc = 0.0
         self.minimized = False
         self._lang_codes = available_langs()
-        self._lang_prev = 'en' if self.state.language == 'ar' else self.state.language
+        self._lang_prev = 'ph' if self.state.language == 'ar' else self.state.language
 
         self._build()
         self._actions()
@@ -403,6 +411,9 @@ class Prompter(Adw.ApplicationWindow):
         auto = Gio.SimpleAction.new_stateful('auto', None, GLib.Variant('b', self.state.auto))
         auto.connect('activate', self._toggle_auto)
         self.add_action(auto)
+        pause = Gio.SimpleAction.new_stateful('pause', GLib.VariantType('s'), GLib.Variant('s', self.state.pause))
+        pause.connect('activate', self._set_pause)
+        self.add_action(pause)
         reminder = Gio.SimpleAction.new_stateful('reminder', None, GLib.Variant('b', reminder_on()))
         reminder.connect('activate', self._toggle_reminder)
         self.add_action(reminder)
@@ -432,6 +443,12 @@ class Prompter(Adw.ApplicationWindow):
             reciters.append_item(item)
         opts.append_submenu('Reciter', reciters)
         opts.append('Continue automatically', 'win.auto')
+        breaths = Gio.Menu()
+        for key, label in (('none', 'None'), ('short', 'Short breath'), ('long', 'Long breath')):
+            item = Gio.MenuItem.new(label, None)
+            item.set_action_and_target_value('win.pause', GLib.Variant('s', key))
+            breaths.append_item(item)
+        opts.append_submenu('Pause between ayahs', breaths)
         opts.append('Arabic', 'win.arabic')
         opts.append(f'Remind me at 22:00 ({quran.name(56)})', 'win.reminder')
         menu.append_section(None, opts)
@@ -733,12 +750,14 @@ class Prompter(Adw.ApplicationWindow):
             self.spinner.set_visible(False)
 
     def _queue_next(self):
-        """With "continue automatically", line up the next ayah so it follows without a gap."""
-        self.player.queued = None
+        """With "continue automatically", line up the next ayah, after a short breath (or none),
+        so the recitation goes on without the player stopping in between."""
+        self.player.queued = []
         if self.audio_on and self.state.auto and self.index + 1 < len(self.lines):
             path, _ = file_for(self.state.reciter, self.surah, self.lines[self.index + 1].ayah)
             if os.path.exists(path):
-                self.player.queued = path
+                breath = PAUSES[self.state.pause]
+                self.player.queued = ([silence(breath)] if breath else []) + [path]
 
     def _audio_next(self):
         # The queued ayah has started playing: move the text along with it.
@@ -999,7 +1018,7 @@ class Prompter(Adw.ApplicationWindow):
         self.style_sample.set_label(restyle("Idhâ waqa'ati-l-wâqi'ah · Qoul houwa-llâhou", self.state.phonetics))
 
     def _sync_tr_enabled(self):
-        on = self.state.language == 'ar'
+        on = self.state.language in ('ph', 'ar')
         self.tr_box.set_sensitive(on)
         if on:
             self.tr_box.remove_css_class('muted')
@@ -1037,7 +1056,7 @@ class Prompter(Adw.ApplicationWindow):
             self.lang_drop.set_selected(i)
 
     def set_phonetics(self, style):
-        if self.state.language != 'ar':
+        if self.state.language not in ('ph', 'ar'):
             return
         if style == self.state.phonetics:
             return
@@ -1058,6 +1077,13 @@ class Prompter(Adw.ApplicationWindow):
         except (OSError, subprocess.SubprocessError):
             return
         action.set_state(GLib.Variant('b', on))
+
+    def _set_pause(self, action, value):
+        action.set_state(value)
+        self.state.pause = value.get_string()
+        self.state.save()
+        if self.player.playing:
+            self._queue_next()
 
     def _toggle_auto(self, action, _):
         on = not action.get_state().get_boolean()

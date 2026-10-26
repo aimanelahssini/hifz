@@ -15,7 +15,7 @@ enum Translations {
     private static var cache: [Store.Language: [[String]]] = [:]
 
     static func text(_ lang: Store.Language, surah: Int, ayah: Int) -> String {
-        guard lang != .ar, let stem = stems[lang] else { return "" }
+        guard lang != .ar, lang != .ph, let stem = stems[lang] else { return "" }
         let bySurah = load(lang, stem: stem)
         if ayah == 0 {
             return bySurah[0].first ?? ""

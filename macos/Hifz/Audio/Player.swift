@@ -18,6 +18,10 @@ final class Player {
     private var timePitch: AVAudioUnitTimePitch?
     /// Next file already scheduled behind the current one (gapless).
     private var pendingGapless: URL?
+    /// A new one at every play, halt and stop. Stopping the node calls the completion of every
+    /// file it had scheduled; those belong to an older generation and are ignored, otherwise
+    /// each one would move the text on by an ayah (going back 4 lines skipped 3).
+    private var generation = 0
 
     var active: Bool { engine != nil }
 
@@ -46,6 +50,7 @@ final class Player {
 
     func stop() {
         Log.action("audio: engine stop")
+        generation += 1
         queued = nil
         pendingGapless = nil
         playerNode?.stop()
@@ -61,6 +66,7 @@ final class Player {
 
     func halt() {
         Log.action("audio: halt")
+        generation += 1
         queued = nil
         pendingGapless = nil
         playerNode?.stop()
@@ -73,12 +79,13 @@ final class Player {
         do {
             if !eng.isRunning { try eng.start() }
             let file = try AVAudioFile(forReading: url)
+            generation += 1
             node.stop()
             playing = url
             isPaused = false
             pendingGapless = nil
             Log.action("audio: play \(url.lastPathComponent) @\(speed)x")
-            schedule(file, on: node)
+            schedule(file, url: url, on: node)
             applyRate()
             node.play()
             scheduleQueued(on: node)
@@ -107,9 +114,11 @@ final class Player {
         Log.action("audio: speed \(speed)x")
     }
 
-    private func schedule(_ file: AVAudioFile, on node: AVAudioPlayerNode) {
-        node.scheduleFile(file, at: nil) { [weak self] in
-            DispatchQueue.main.async { self?.fileDidFinish() }
+    private func schedule(_ file: AVAudioFile, url: URL, on node: AVAudioPlayerNode) {
+        let gen = generation
+        // .dataPlayedBack: when the ayah has been heard, not when the file has been read.
+        node.scheduleFile(file, at: nil, completionCallbackType: .dataPlayedBack) { [weak self] _ in
+            DispatchQueue.main.async { self?.fileDidFinish(gen: gen, url: url) }
         }
     }
 
@@ -120,14 +129,16 @@ final class Player {
             queued = nil
             pendingGapless = next
             Log.action("audio: queue \(next.lastPathComponent)")
-            schedule(file, on: node)
+            schedule(file, url: next, on: node)
         } catch {
             Log.action("audio: queue failed: \(error)")
             pendingGapless = nil
         }
     }
 
-    private func fileDidFinish() {
+    private func fileDidFinish(gen: Int, url: URL) {
+        // Only the file playing now, scheduled since the last move, can end it.
+        guard gen == generation, url == playing else { return }
         if let next = pendingGapless {
             playing = next
             pendingGapless = nil

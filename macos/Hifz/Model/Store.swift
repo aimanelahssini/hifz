@@ -25,13 +25,16 @@ final class Store: ObservableObject {
         }
     }
 
+    /// What the lines show: the phonetics alone (first), Arabic with the phonetics under it,
+    /// or a translation.
     enum Language: String, CaseIterable, Identifiable {
-        case ar, en, fr, tr, id, es
+        case ph, ar, en, fr, tr, id, es
 
         var id: String { rawValue }
 
         var title: String {
             switch self {
+            case .ph: return "Phonetics"
             case .ar: return "Arabic"
             case .en: return "English"
             case .fr: return "French"
@@ -89,7 +92,7 @@ final class Store: ObservableObject {
     private var surahs: [String: SurahEntry]
 
     /// Last non-Arabic language, for the A key toggle.
-    var previousLanguage: Language = .en
+    var previousLanguage: Language = .ph
 
     var showArabic: Bool { language == .ar }
 
@@ -107,6 +110,7 @@ final class Store: ObservableObject {
         var show_arabic: Bool?
         var language: String?
         var phonetics: String?
+        var text_v: Int?
         var auto: Bool
         var after: String
         var saved: [Int]
@@ -118,7 +122,7 @@ final class Store: ObservableObject {
         self.surah = Store.defaultSurah
         self.speed = 1.0
         self.reciter = "Alafasy_128kbps"
-        self.language = .ar
+        self.language = .ph
         self.phonetics = .fr
         self.auto = false
         self.after = "repeat"
@@ -137,9 +141,11 @@ final class Store: ObservableObject {
         self.reciter = file.reciter
         let loadedLang: Language
         if let lang = file.language, let parsed = Language(rawValue: lang) {
-            loadedLang = parsed
+            // Before the Phonetics mode, Arabic was filled in for everyone: the Arabic text
+            // is off unless you turn it on.
+            loadedLang = (parsed == .ar && file.text_v != 2) ? .ph : parsed
         } else {
-            loadedLang = .ar
+            loadedLang = .ph
         }
         self.language = loadedLang
         self.phonetics = Phonetics(rawValue: file.phonetics ?? "") ?? .fr
@@ -184,6 +190,7 @@ final class Store: ObservableObject {
                 show_arabic: language == .ar,
                 language: language.rawValue,
                 phonetics: phonetics.rawValue,
+                text_v: 2,
                 auto: auto,
                 after: after,
                 saved: saved,

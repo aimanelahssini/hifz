@@ -103,6 +103,10 @@ final class PrompterModel: ObservableObject {
 
     private func estimatedHeight(_ i: Int) -> CGFloat {
         guard i < lines.count else { return 28 }
+        if store.language == .ph {
+            let chars = CGFloat(store.phonetics.restyle(lines[i].phonetic).count)
+            return max(1, ceil(chars / 40)) * 24
+        }
         if store.language == .ar {
             let arRows = max(1, ceil(CGFloat(lines[i].arabic.count) / 28))
             let phChars = CGFloat(store.phonetics.restyle(lines[i].phonetic).count)
@@ -379,7 +383,7 @@ final class PrompterModel: ObservableObject {
     }
 
     func setPhonetics(_ style: Store.Phonetics) {
-        guard store.language == .ar else { return }
+        guard store.language == .ar || store.language == .ph else { return }
         guard style != store.phonetics else { return }
         store.phonetics = style
         store.save()

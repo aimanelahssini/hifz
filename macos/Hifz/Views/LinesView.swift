@@ -53,7 +53,16 @@ struct LineRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            if language == .ar {
+            if language == .ph {
+                // The phonetics alone, the original look.
+                Text(phonetics.restyle(line.phonetic))
+                    .font(.system(size: 17, weight: distance == 0 ? .bold : .medium))
+                    .foregroundStyle(distance == 0 ? Theme.current : Theme.dim)
+                    .shadow(color: distance == 0 ? Color.black.opacity(0.35) : .clear, radius: 1, y: 1)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if language == .ar {
                 Text(line.arabic)
                     .font(Theme.arabicFont)
                     .fontWeight(distance == 0 ? .medium : .regular)

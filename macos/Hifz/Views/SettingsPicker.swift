@@ -4,7 +4,8 @@ struct SettingsPicker: View {
     @ObservedObject var model: PrompterModel
 
     private let sample = "Idhâ waqa'ati-l-wâqi'ah · Qoul houwa-llâhou"
-    private var arabic: Bool { model.store.language == .ar }
+    /// The transliteration style applies to the Phonetics and Arabic modes.
+    private var arabic: Bool { model.store.language == .ar || model.store.language == .ph }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
