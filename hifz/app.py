@@ -13,9 +13,12 @@ from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gtk, Pango  # noqa: E40
 
 from . import APP_ID, quran  # noqa: E402
 from .audio import RECITERS, Downloader, Player, file_for  # noqa: E402
+from .phonetic import STYLES, restyle  # noqa: E402
 from .state import SPEED_MAX, SPEED_MIN, SPEEDS, State  # noqa: E402
+from .translations import LANG_LABELS, available as available_langs, text as tr_text  # noqa: E402
 
 WIDTH, HEIGHT = 440, 212
+MINI = 44
 PAD = 18
 HEAD = 30
 VIEW = HEIGHT - HEAD - PAD          # the part where the lines scroll
@@ -38,8 +41,28 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
 .head button:hover { color: white; background: rgba(255, 255, 255, 0.10); }
 .head button, .head button:focus, .head button:focus-visible { outline: none; }
 .head button.on { color: white; }
-.head .close { opacity: 0; transition: opacity 160ms ease; }
+.head .hide {
+  color: rgba(255, 255, 255, 0.70); background: rgba(255, 255, 255, 0.10);
+}
+.head .hide:hover { color: white; background: rgba(255, 255, 255, 0.18); }
+/* × visible on card hover; circle only when the × itself is hovered. */
+.head .close {
+  opacity: 0; transition: opacity 160ms ease, background 120ms ease, color 120ms ease;
+  background: none;
+}
 .card:hover .head .close { opacity: 1; }
+.head .close:hover {
+  color: white; background: rgba(255, 255, 255, 0.10);
+}
+.mini {
+  background: linear-gradient(180deg, #252b40 0%, #11131c 100%);
+  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.mini button.book {
+  min-width: 44px; min-height: 44px; padding: 0; background: none; box-shadow: none;
+  color: #e9c46a; border-radius: 12px;
+}
+.mini button.book:hover { color: #f6d98b; }
 .count {
   font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, 0.60);
   background: rgba(255, 255, 255, 0.08); border-radius: 99px; padding: 1px 8px 1px 6px;
@@ -60,8 +83,13 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
 .line.past { opacity: 0; }
 .line .ar {
   font-family: "Amiri Quran", "Amiri", "KFGQPC Uthmanic Script HAFS", "Noto Naskh Arabic", serif;
-  font-size: 18px; font-weight: 400; opacity: 0.85;
+  font-size: 18px; font-weight: 400;
 }
+.line .ph {
+  font-size: 14px; font-weight: 500; opacity: 0.85;
+}
+popover.settings .muted { opacity: 0.40; }
+popover.settings dropdown { min-width: 160px; }
 .lines { padding: 0 20px 0 18px; }
 .content { transition: filter 260ms ease, opacity 260ms ease; }
 .content.blurred { filter: blur(14px); opacity: 0.50; }
@@ -88,6 +116,9 @@ window.hifz, window.hifz.background { background: none; box-shadow: none; }
   transition: opacity 360ms ease;
 }
 .endhint.far { opacity: 0.35; }
+popover.settings > contents { padding: 12px 14px; min-width: 260px; }
+popover.settings .section { font-size: 11px; font-weight: 700; color: alpha(currentColor, 0.5); }
+popover.settings .sample { font-size: 12px; color: alpha(currentColor, 0.6); }
 popover.dropdown > contents { padding: 6px; min-width: 0; }
 popover.dropdown list { background: none; }
 popover.dropdown row { border-radius: 8px; padding: 5px 8px; min-height: 0; }
@@ -111,23 +142,40 @@ popover.dropdown list row button.star:hover image { color: #e9c46a; }
 
 
 class LineView(Gtk.Box):
-    def __init__(self, line):
+    def __init__(self, line, surah, state):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         self.add_css_class('line')
         self.line = line
-        self.ph = Gtk.Label(label=line.phonetic, xalign=0, wrap=True,
-                            wrap_mode=Pango.WrapMode.WORD_CHAR, justify=Gtk.Justification.LEFT)
-        self.ph.set_max_width_chars(1)        # wrap at the box width, never widen it
-        self.ph.set_hexpand(True)
-        self.append(self.ph)
-        self.ar = Gtk.Label(label=line.arabic, xalign=1, wrap=True,
-                            wrap_mode=Pango.WrapMode.WORD_CHAR)
-        self.ar.set_max_width_chars(1)
-        self.ar.set_hexpand(True)
-        self.ar.set_direction(Gtk.TextDirection.RTL)
-        self.ar.add_css_class('ar')
-        self.ar.set_visible(False)
-        self.append(self.ar)
+        self.surah = surah
+        self.primary = Gtk.Label(xalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR,
+                                 justify=Gtk.Justification.LEFT)
+        self.primary.set_max_width_chars(1)
+        self.primary.set_hexpand(True)
+        self.append(self.primary)
+        self.secondary = Gtk.Label(xalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR,
+                                   justify=Gtk.Justification.LEFT)
+        self.secondary.set_max_width_chars(1)
+        self.secondary.set_hexpand(True)
+        self.secondary.add_css_class('ph')
+        self.append(self.secondary)
+        self.apply(state)
+
+    def apply(self, state):
+        if state.language == 'ar':
+            self.primary.set_label(self.line.arabic)
+            self.primary.set_xalign(1)
+            self.primary.set_justify(Gtk.Justification.RIGHT)
+            self.primary.set_direction(Gtk.TextDirection.RTL)
+            self.primary.add_css_class('ar')
+            self.secondary.set_label(restyle(self.line.phonetic, state.phonetics))
+            self.secondary.set_visible(True)
+        else:
+            self.primary.remove_css_class('ar')
+            self.primary.set_xalign(0)
+            self.primary.set_justify(Gtk.Justification.LEFT)
+            self.primary.set_direction(Gtk.TextDirection.LTR)
+            self.primary.set_label(tr_text(state.language, self.surah, self.line.ayah) or self.line.phonetic)
+            self.secondary.set_visible(False)
 
     def set_distance(self, d):
         for c in ('current', 'd1', 'd2', 'd3', 'far', 'past'):
@@ -150,6 +198,11 @@ class Prompter(Adw.ApplicationWindow):
         self.set_resizable(False)
         self.set_default_size(WIDTH, HEIGHT)
         self.add_css_class('hifz')
+        # Helps on X11 and some compositors when the GNOME extension isn't there.
+        try:
+            self.set_keep_above(True)
+        except Exception:
+            pass
 
         self.audio_on = False      # always starts muted
         self.player = Player(self._audio_ended, self._audio_next)
@@ -162,6 +215,9 @@ class Prompter(Adw.ApplicationWindow):
         self.paused = False        # Space paused the recitation
         self._then = None
         self.scroll_acc = 0.0
+        self.minimized = False
+        self._lang_codes = available_langs()
+        self._lang_prev = 'en' if self.state.language == 'ar' else self.state.language
 
         self._build()
         self._actions()
@@ -180,6 +236,27 @@ class Prompter(Adw.ApplicationWindow):
         click.connect('pressed', self._menu_at)
         self.add_controller(click)
         self.connect('close-request', self._closing)
+        self.connect('map', lambda *_: self._place_corner())
+
+    def _place_corner(self):
+        """Best-effort top-right placement when no GNOME extension is pinning us."""
+        try:
+            display = self.get_display()
+            monitor = display.get_monitor_at_surface(self.get_surface()) if self.get_surface() else None
+            if monitor is None:
+                monitor = display.get_monitors().get_item(0)
+            if monitor is None:
+                return
+            geo = monitor.get_geometry()
+            margin = 12
+            x = geo.x + geo.width - WIDTH - margin
+            y = geo.y + margin
+            # Native move works on X11; Wayland compositors may ignore it.
+            if hasattr(self, 'move'):
+                self.move(x, y)
+            print(f'[hifz] ui: place corner ({x},{y})', flush=True)
+        except Exception as e:
+            print(f'[hifz] ui: place corner skipped: {e}', flush=True)
 
     # ---------- building ----------
 
@@ -223,10 +300,16 @@ class Prompter(Adw.ApplicationWindow):
         self.mode_btn = Gtk.Button(valign=Gtk.Align.CENTER)
         self.mode_btn.add_css_class('mode')
         self.mode_btn.connect('clicked', lambda *_: self.cycle_after())
-        close = Gtk.Button(icon_name='window-close-symbolic', tooltip_text='Close (Ctrl+Q)',
-                           valign=Gtk.Align.CENTER)
-        close.add_css_class('close')
-        close.connect('clicked', lambda *_: self.close())
+        hide = Gtk.Button(icon_name='view-conceal-symbolic',
+                          tooltip_text='Hide (leaves a small book icon) · H',
+                          valign=Gtk.Align.CENTER)
+        hide.add_css_class('hide')
+        hide.connect('clicked', lambda *_: self.hide_to_mini())
+        self.hide_btn = hide
+        self.settings_pop = self._settings_popover()
+        settings = Gtk.MenuButton(icon_name='emblem-system-symbolic', popover=self.settings_pop,
+                                  valign=Gtk.Align.CENTER, tooltip_text='Settings')
+        settings.add_css_class('gear')
         self.audio_btn = Gtk.Button(icon_name='audio-volume-muted-symbolic', valign=Gtk.Align.CENTER,
                                     tooltip_text='Recitation off (M)')
         self.audio_btn.connect('clicked', lambda *_: self.toggle_audio())
@@ -239,8 +322,13 @@ class Prompter(Adw.ApplicationWindow):
         count_box.append(self.count)
         self.count_box = count_box
         count_box.set_tooltip_text('Times you finished this surah')
-        for w in (self.surah_btn, self.where, close, self.spinner, self.mode_btn, self.speed_btn, self.audio_btn,
-                  count_box):
+        close = Gtk.Button(icon_name='window-close-symbolic', tooltip_text='Close (Ctrl+Q)',
+                           valign=Gtk.Align.CENTER)
+        close.add_css_class('close')
+        close.connect('clicked', lambda *_: self.close())
+        self.head_close = close
+        for w in (self.surah_btn, self.where, settings, hide, self.spinner, self.mode_btn, self.speed_btn, self.audio_btn,
+                  count_box, close):
             w.set_focusable(False)
             head.append(w)
         self.content.append(head)
@@ -286,6 +374,20 @@ class Prompter(Adw.ApplicationWindow):
         self.yes_btn = yes
         card.add_overlay(fin)
 
+        # Mini book: shown when the card is hidden. Click to reopen.
+        mini = Gtk.Overlay()
+        mini.add_css_class('mini')
+        mini.set_size_request(MINI, MINI)
+        book = Gtk.Button(icon_name='accessories-dictionary-symbolic', tooltip_text='Show Hifz')
+        book.add_css_class('book')
+        book.set_focusable(False)
+        book.connect('clicked', lambda *_: self.show_from_mini())
+        mini.set_child(book)
+        mini.set_visible(False)
+        card.add_overlay(mini)
+        self.mini = mini
+        self.card = card
+
     def _actions(self):
         speed = Gio.SimpleAction.new_stateful('speed', GLib.VariantType('s'),
                                               GLib.Variant('s', fmt_speed(self.state.speed)))
@@ -308,6 +410,7 @@ class Prompter(Adw.ApplicationWindow):
         audio.connect('activate', lambda *_: self.toggle_audio())
         self.add_action(audio)
         for name, cb in (('restart', lambda *_: self.go(0, slow=True)),
+                         ('hide', lambda *_: self.hide_to_mini()),
                          ('close', lambda *_: self.close())):
             a = Gio.SimpleAction.new(name, None)
             a.connect('activate', cb)
@@ -329,10 +432,11 @@ class Prompter(Adw.ApplicationWindow):
             reciters.append_item(item)
         opts.append_submenu('Reciter', reciters)
         opts.append('Continue automatically', 'win.auto')
-        opts.append('Show Arabic', 'win.arabic')
+        opts.append('Arabic', 'win.arabic')
         opts.append(f'Remind me at 22:00 ({quran.name(56)})', 'win.reminder')
         menu.append_section(None, opts)
         end = Gio.Menu()
+        end.append('Hide', 'win.hide')
         end.append('Back to the beginning', 'win.restart')
         end.append('Close', 'win.close')
         menu.append_section(None, end)
@@ -354,9 +458,8 @@ class Prompter(Adw.ApplicationWindow):
             nxt = child.get_next_sibling()
             self.box.remove(child)
             child = nxt
-        self.views = [LineView(line) for line in self.lines]
+        self.views = [LineView(line, n, self.state) for line in self.lines]
         for v in self.views:
-            v.ar.set_visible(self.state.show_arabic)
             self.box.append(v)
         # Under the last ayah: what to do once you get there.
         self.endhint = Gtk.Label(label='Finished? Press Space or scroll', xalign=0)
@@ -834,12 +937,116 @@ class Prompter(Adw.ApplicationWindow):
             self._play_current()
 
     def _toggle_arabic(self, action, _):
-        on = not action.get_state().get_boolean()
-        action.set_state(GLib.Variant('b', on))
-        self.state.show_arabic = on
+        # A key / menu: jump to Arabic, or back to the last literal language.
+        if self.state.language == 'ar':
+            self.set_language(self._lang_prev)
+        else:
+            self._lang_prev = self.state.language
+            self.set_language('ar')
+
+    def _settings_popover(self):
+        pop = Gtk.Popover(has_arrow=False)
+        pop.add_css_class('settings')
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+
+        lang_title = Gtk.Label(label='Language', xalign=0)
+        lang_title.add_css_class('section')
+        box.append(lang_title)
+        labels = [LANG_LABELS[c] for c in self._lang_codes]
+        self.lang_drop = Gtk.DropDown.new_from_strings(labels)
+        try:
+            self.lang_drop.set_selected(self._lang_codes.index(self.state.language))
+        except ValueError:
+            self.lang_drop.set_selected(0)
+        self.lang_drop.connect('notify::selected', self._lang_picked)
+        box.append(self.lang_drop)
+
+        self.tr_title = Gtk.Label(label='Transliteration', xalign=0)
+        self.tr_title.add_css_class('section')
+        self.tr_title.set_margin_top(4)
+        box.append(self.tr_title)
+        self.tr_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        styles = Gtk.Box(spacing=0)
+        styles.add_css_class('linked')
+        group = None
+        self.style_btns = {}
+        for sid, (label, _) in STYLES.items():
+            b = Gtk.ToggleButton(label=label, group=group)
+            group = group or b
+            b.set_active(sid == self.state.phonetics)
+            b.connect('toggled', lambda btn, sid=sid: btn.get_active() and self.set_phonetics(sid))
+            styles.append(b)
+            self.style_btns[sid] = b
+        self.tr_box.append(styles)
+        self.style_sample = Gtk.Label(xalign=0)
+        self.style_sample.add_css_class('sample')
+        self.tr_box.append(self.style_sample)
+        box.append(self.tr_box)
+
+        pop.set_child(box)
+        pop.connect('show', lambda *_: print('[hifz] ui: open settings', flush=True))
+        self._sample_style()
+        self._sync_tr_enabled()
+        return pop
+
+    def _lang_picked(self, drop, _):
+        i = drop.get_selected()
+        if i < 0 or i >= len(self._lang_codes):
+            return
+        self.set_language(self._lang_codes[i])
+
+    def _sample_style(self):
+        self.style_sample.set_label(restyle("Idhâ waqa'ati-l-wâqi'ah · Qoul houwa-llâhou", self.state.phonetics))
+
+    def _sync_tr_enabled(self):
+        on = self.state.language == 'ar'
+        self.tr_box.set_sensitive(on)
+        if on:
+            self.tr_box.remove_css_class('muted')
+            self.tr_title.remove_css_class('muted')
+        else:
+            self.tr_box.add_css_class('muted')
+            self.tr_title.add_css_class('muted')
+
+    def set_language(self, lang):
+        if lang not in self._lang_codes:
+            return
+        if lang == self.state.language:
+            self._sync_lang_ui()
+            return
+        if self.state.language != 'ar':
+            self._lang_prev = self.state.language
+        print(f'[hifz] settings: language {lang}', flush=True)
+        self.state.language = lang
         self.state.save()
         for v in self.views:
-            v.ar.set_visible(on)
+            v.apply(self.state)
+        self._sync_lang_ui()
+        self._sync_tr_enabled()
+        act = self.lookup_action('arabic')
+        if act:
+            act.set_state(GLib.Variant('b', lang == 'ar'))
+        GLib.idle_add(self._snap)
+
+    def _sync_lang_ui(self):
+        try:
+            i = self._lang_codes.index(self.state.language)
+        except ValueError:
+            i = 0
+        if self.lang_drop.get_selected() != i:
+            self.lang_drop.set_selected(i)
+
+    def set_phonetics(self, style):
+        if self.state.language != 'ar':
+            return
+        if style == self.state.phonetics:
+            return
+        print(f'[hifz] settings: phonetics {style}', flush=True)
+        self.state.phonetics = style
+        self.state.save()
+        for v in self.views:
+            v.apply(self.state)
+        self._sample_style()
         GLib.idle_add(self._snap)
 
 
@@ -870,7 +1077,8 @@ class Prompter(Adw.ApplicationWindow):
     # ---------- input ----------
 
     def _key(self, ctl, keyval, code, mods):
-        if self.surah_pop.get_visible() or self.speed_pop.get_visible():
+        if (self.surah_pop.get_visible() or self.speed_pop.get_visible()
+                or self.settings_pop.get_visible()):
             return False           # typing in a dropdown
         # The input method can hand the same letter key over twice; act on it once.
         stamp = (keyval, ctl.get_current_event_time())
@@ -881,6 +1089,10 @@ class Prompter(Adw.ApplicationWindow):
         ctrl = mods & Gdk.ModifierType.CONTROL_MASK
         if ctrl and keyval in (Gdk.KEY_q, Gdk.KEY_w):
             self.close()
+            return True
+        if self.minimized:
+            # Any key on the mini book brings the card back (except quit above).
+            self.show_from_mini()
             return True
         if self.finishing:
             if keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_y):
@@ -902,6 +1114,8 @@ class Prompter(Adw.ApplicationWindow):
             self.toggle_audio()
         elif keyval in (Gdk.KEY_a, Gdk.KEY_A):
             self.activate_action('win.arabic', None)
+        elif keyval in (Gdk.KEY_h, Gdk.KEY_H):
+            self.hide_to_mini()
         elif keyval == Gdk.KEY_Home:
             self.go(0, slow=True)
         elif keyval == Gdk.KEY_Menu:
@@ -909,6 +1123,33 @@ class Prompter(Adw.ApplicationWindow):
         else:
             return False
         return True
+
+    # ---------- hide / mini book ----------
+
+    def hide_to_mini(self):
+        if self.minimized:
+            return
+        print('[hifz] ui: hide to mini', flush=True)
+        self.minimized = True
+        self.surah_pop.popdown()
+        self.speed_pop.popdown()
+        self.settings_pop.popdown()
+        self.content.set_visible(False)
+        self.finish.set_visible(False)
+        self.mini.set_visible(True)
+        self.card.set_size_request(MINI, MINI)
+        self.set_default_size(MINI, MINI)
+
+    def show_from_mini(self):
+        if not self.minimized:
+            return
+        print('[hifz] ui: show from mini', flush=True)
+        self.minimized = False
+        self.mini.set_visible(False)
+        self.content.set_visible(True)
+        self.card.set_size_request(WIDTH - 2, HEIGHT - 2)
+        self.set_default_size(WIDTH, HEIGHT)
+        GLib.idle_add(self._snap)
 
     def _scroll(self, ctl, dx, dy):
         if self.finishing:

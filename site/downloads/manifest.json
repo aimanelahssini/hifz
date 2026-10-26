@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "files": {
+    "Hifz-macOS.dmg": {
+      "bytes": 1054359
+    },
+    "Hifz-macOS.zip": {
+      "bytes": 1024066
+    },
+    "Hifz-linux-installer.sh": {
+      "bytes": 336727
+    },
+    "Hifz-linux.tar.gz": {
+      "bytes": 336370
+    }
+  }
+}

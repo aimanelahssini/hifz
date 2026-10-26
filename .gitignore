@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 site/assets/
 .vercel
+macos/build/
+macos/Hifz.xcodeproj/
+macos/Hifz/Resources/quran.json
+macos/Hifz/Resources/trans/
+# downloads/ is produced by scripts/package.sh and served by the site

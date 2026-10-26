@@ -413,3 +413,21 @@ def capitalize(s):
         if ch.isalpha():
             return s[:i] + ch.upper() + s[i + 1:]
     return s
+
+
+# The French spelling only uses "o" in ou/oû and "c" in ch, so the other styles are a plain
+# respelling of it. Order matters: oû before ou.
+STYLES = {
+    'fr': ('French', ()),
+    'en': ('English', (('Oû', 'Oo'), ('oû', 'oo'), ('Ou', 'U'), ('ou', 'u'), ('Ch', 'Sh'), ('ch', 'sh'),
+                       ('Â', 'Aa'), ('â', 'aa'), ('Î', 'Ee'), ('î', 'ee'))),
+    'tr': ('Turkish', (('Oû', 'Ū'), ('oû', 'ū'), ('Ou', 'U'), ('ou', 'u'), ('Ch', 'Sh'), ('ch', 'sh'),
+                       ('Â', 'Ā'), ('â', 'ā'), ('Î', 'Ī'), ('î', 'ī'))),
+}
+
+
+def restyle(text, style):
+    """Respell a French transcription in another style ('fr', 'en' or 'tr')."""
+    for a, b in STYLES.get(style, STYLES['fr'])[1]:
+        text = text.replace(a, b)
+    return text

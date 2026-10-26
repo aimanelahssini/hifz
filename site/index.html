@@ -1,233 +1,186 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr" data-base="https://hifz.app/">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hifz · Learn a surah by heart</title>
-<meta name="description" content="A small Quran prompter for GNOME. One ayah at a time in French phonetics, always on top in the corner of your screen, with a recitation that follows you.">
-<meta property="og:title" content="Hifz · Learn a surah by heart">
-<meta property="og:description" content="One ayah at a time, in the corner of your screen. Press Space for the next one.">
-<meta property="og:image" content="assets/demo-poster.jpg">
-<meta name="theme-color" content="#0e1018">
+<title>Hifz — learn a surah by heart</title>
+<meta name="description" content="Hifz keeps the surah you're memorising in a small card at the edge of your screen, one ayah at a time, in French phonetics. For macOS and Linux.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="theme-color" content="#f6f0e4">
+<link rel="canonical" href="https://hifz.app/">
+<link rel="alternate" hreflang="en" href="https://hifz.app/">
+<link rel="alternate" hreflang="fr" href="https://hifz.app/fr/">
+<link rel="alternate" hreflang="ar" href="https://hifz.app/ar/">
+<link rel="alternate" hreflang="id" href="https://hifz.app/id/">
+<link rel="alternate" hreflang="es" href="https://hifz.app/es/">
+<link rel="alternate" hreflang="tr" href="https://hifz.app/tr/">
+<link rel="alternate" hreflang="x-default" href="https://hifz.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hifz">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta property="og:locale:alternate" content="ar_SA">
+<meta property="og:locale:alternate" content="id_ID">
+<meta property="og:locale:alternate" content="es_ES">
+<meta property="og:locale:alternate" content="tr_TR">
+<meta property="og:title" content="Hifz — learn a surah by heart">
+<meta property="og:description" content="One ayah at a time, in a small card at the edge of your screen. For macOS and Linux.">
+<meta property="og:url" content="https://hifz.app/">
+<meta property="og:image" content="https://hifz.app/assets/demo-poster.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hifz — learn a surah by heart">
+<meta name="twitter:description" content="One ayah at a time, in a small card at the edge of your screen. For macOS and Linux.">
+<meta name="twitter:image" content="https://hifz.app/assets/demo-poster.jpg">
 <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg: #0d0f17;
-  --bg2: #131726;
-  --panel: rgba(255, 255, 255, 0.04);
-  --line: rgba(255, 255, 255, 0.09);
-  --text: #eceef4;
-  --muted: #a2a8bb;
-  --dim: #6f768c;
-  --gold: #e9c46a;
-  --gold2: #d9a441;
-  --teal: #3b6e6a;
-  --radius: 20px;
+<link href="https://fonts.googleapis.com/css2?family=Amiri&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Hifz",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "macOS 14+, Linux (GNOME)",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "description": "A small always-on-top card to memorise a Quran surah, one ayah at a time, with French phonetics and optional recitation.",
+  "url": "https://hifz.app/",
+  "inLanguage": "en",
+  "downloadUrl": [
+    "https://hifz.app/downloads/Hifz-macOS.dmg",
+    "https://hifz.app/downloads/Hifz-linux-installer.sh"
+  ],
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true
 }
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-a { color: inherit; }
-img, video { max-width: 100%; display: block; }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-
-/* nav */
-nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px);
-  background: rgba(13, 15, 23, 0.72); border-bottom: 1px solid var(--line); }
-nav .wrap { display: flex; align-items: center; gap: 12px; height: 60px; }
-nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; }
-nav .brand img { width: 30px; height: 30px; }
-nav .links { margin-left: auto; display: flex; gap: 22px; align-items: center; font-size: 14px; }
-nav .links a { text-decoration: none; color: var(--muted); }
-nav .links a:hover { color: var(--text); }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 999px;
-  font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid var(--line);
-  background: var(--panel); color: var(--text); cursor: pointer; transition: background .2s, transform .2s; }
-.btn:hover { background: rgba(255, 255, 255, 0.09); }
-.btn.gold { background: linear-gradient(135deg, #f6d98b, var(--gold2)); color: #1a1d2b; border: 0; }
-.btn.gold:hover { transform: translateY(-1px); }
-nav .btn { padding: 7px 14px; font-size: 13px; }
-
-/* hero */
-.hero { position: relative; overflow: hidden; padding: 84px 0 40px;
-  background: radial-gradient(900px 500px at 85% -10%, rgba(233, 196, 106, 0.16), transparent 60%),
-              radial-gradient(800px 600px at 10% 110%, rgba(59, 110, 106, 0.35), transparent 60%),
-              linear-gradient(180deg, #121a2e, var(--bg)); }
-.hero .grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
-.eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; color: var(--gold);
-  border: 1px solid rgba(233, 196, 106, 0.3); background: rgba(233, 196, 106, 0.08);
-  padding: 5px 12px; border-radius: 999px; font-weight: 600; }
-h1 { font-size: clamp(38px, 5.4vw, 62px); line-height: 1.05; letter-spacing: -0.035em; margin: 20px 0 18px; font-weight: 800; }
-h1 span { background: linear-gradient(135deg, #f6d98b, var(--gold2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.lead { font-size: 19px; color: var(--muted); max-width: 540px; margin: 0 0 30px; }
-.cta { display: flex; gap: 12px; flex-wrap: wrap; }
-.small { font-size: 13px; color: var(--dim); margin-top: 16px; }
-
-/* the try-it card */
-.stage { position: relative; border-radius: 26px; padding: 34px 28px 30px; min-height: 360px;
-  background: linear-gradient(135deg, #1e2a4a, #284b63 55%, #3b6e6a);
-  border: 1px solid var(--line); box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.6); }
-.stage .bar { position: absolute; left: 0; right: 0; top: 0; height: 22px; background: #000;
-  border-radius: 26px 26px 0 0; display: flex; justify-content: center; align-items: center;
-  font-size: 11px; font-weight: 700; }
-.card { position: relative; margin: 26px 0 0 auto; width: 100%; max-width: 440px; height: 212px;
-  background: rgba(16, 16, 20, 0.80); border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 18px; overflow: hidden; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
-  outline: none; cursor: pointer; user-select: none; }
-.card:focus-visible { box-shadow: 0 0 0 3px rgba(233, 196, 106, 0.6); }
-.card .head { height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px 0 16px;
-  font-size: 11px; color: rgba(255, 255, 255, 0.5); }
-.card .head b { color: rgba(255, 255, 255, 0.74); font-weight: 600; }
-.card .head .sp { flex: 1; }
-.card .head .num { color: rgba(255, 255, 255, 0.45); font-weight: 600; }
-.card .head .speed { font-weight: 700; color: rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; }
-.card .endhint { font-size: 14px; font-weight: 600; color: rgba(233, 196, 106, 0.9); line-height: 23px; }
-.card .count { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: rgba(255, 255, 255, 0.62);
-  background: rgba(255, 255, 255, 0.08); border-radius: 999px; padding: 1px 8px 1px 6px; transition: background .3s, color .3s; }
-.card .count.bump { background: rgba(120, 220, 160, 0.32); color: #fff; }
-.card .spk { width: 22px; height: 22px; display: grid; place-items: center; opacity: .45; }
-.card .view { position: absolute; left: 0; right: 0; top: 36px; bottom: 0; overflow: hidden; }
-.card .lines { padding: 0 20px 0 18px; transition: transform .42s cubic-bezier(.22, .61, .36, 1); }
-.card .l { font-size: 19px; font-weight: 500; line-height: 23px; margin-bottom: 12px;
-  color: rgba(255, 255, 255, 0.56); transition: color .36s, opacity .36s; }
-.card .l.cur { color: #fff; }
-.card .l.d2 { opacity: .78; } .card .l.d3 { opacity: .58; } .card .l.far { opacity: .42; } .card .l.past { opacity: 0; }
-.card .ask { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(10, 10, 14, 0.3); gap: 4px; }
-.card.finishing .head, .card.finishing .view { filter: blur(7px); opacity: .55; }
-.card.finishing .ask { display: flex; }
-.card .ask b { font-size: 17px; }
-.card .ask small { font-size: 12px; color: rgba(255, 255, 255, 0.6); }
-.card .ask div { display: flex; gap: 10px; margin-top: 12px; }
-.card .ask button { border: 0; border-radius: 999px; padding: 7px 18px; font: 600 14px Inter, sans-serif; cursor: pointer;
-  background: rgba(255, 255, 255, 0.12); color: #fff; }
-.card .ask button.yes { background: #fff; color: #111114; }
-.keys { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 22px; color: rgba(255,255,255,.8); font-size: 13px; }
-kbd { font: 600 13px Inter, sans-serif; background: #f4f4f6; color: #2a2a33; border-radius: 8px; padding: 6px 14px;
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); }
-.keys button { all: unset; cursor: pointer; }
-.keys button:active kbd { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
-
-/* sections */
-section { padding: 88px 0; }
-h2 { font-size: clamp(28px, 3.6vw, 40px); letter-spacing: -0.025em; line-height: 1.15; margin: 0 0 14px; font-weight: 800; }
-.sub { color: var(--muted); font-size: 18px; max-width: 640px; margin: 0 0 40px; }
-.video { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: #000;
-  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.8); }
-.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.feature { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
-.feature .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
-  background: rgba(233, 196, 106, 0.12); color: var(--gold); margin-bottom: 14px; }
-.feature h3 { margin: 0 0 6px; font-size: 17px; }
-.feature p { margin: 0; color: var(--muted); font-size: 15px; }
-.row { display: grid; grid-template-columns: 1fr 1.5fr; gap: 48px; align-items: center; margin-bottom: 72px; }
-.row.flip { grid-template-columns: 1.5fr 1fr; }
-.row.flip .txt { order: 2; }
-.row img { border-radius: var(--radius); border: 1px solid var(--line); }
-.row h3 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 10px; }
-.row p { color: var(--muted); margin: 0 0 10px; }
-.legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 28px; }
-.legend div { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
-.legend b { color: var(--gold); font-size: 18px; margin-right: 8px; }
-.legend span { color: var(--muted); font-size: 14px; }
-.sample { background: #101014; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 28px; }
-.sample p { margin: 0 0 6px; font-size: 21px; font-weight: 500; color: rgba(255, 255, 255, 0.5); }
-.sample p:first-child { color: #fff; }
-.sample .ar { font-family: "Amiri", "Noto Naskh Arabic", serif; direction: rtl; text-align: right; font-size: 22px; color: rgba(255,255,255,.75); margin: 0 0 18px; }
-pre { background: #0a0c12; border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; overflow-x: auto;
-  font: 14px/1.7 "JetBrains Mono", monospace; color: #dfe3ee; position: relative; margin: 0; }
-pre .c { color: var(--dim); }
-.copy { position: absolute; top: 12px; right: 12px; font: 600 12px Inter, sans-serif; padding: 6px 12px; border-radius: 999px;
-  border: 1px solid var(--line); background: rgba(255, 255, 255, 0.06); color: var(--text); cursor: pointer; }
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
-.step { border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; background: var(--panel); }
-.step b { display: block; color: var(--gold); font-size: 13px; margin-bottom: 4px; }
-.step span { color: var(--muted); font-size: 15px; }
-.faq details { border-bottom: 1px solid var(--line); padding: 18px 0; }
-.faq summary { cursor: pointer; font-weight: 600; font-size: 17px; list-style: none; display: flex; justify-content: space-between; }
-.faq summary::after { content: "+"; color: var(--gold); font-size: 22px; line-height: 1; }
-.faq details[open] summary::after { content: "–"; }
-.faq p { color: var(--muted); margin: 10px 0 0; }
-footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--dim); font-size: 14px; }
-footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; }
-footer a { color: var(--muted); }
-@media (max-width: 900px) {
-  .hero .grid, .row, .row.flip { grid-template-columns: 1fr; gap: 32px; }
-  .row.flip .txt { order: 0; }
-  .features, .steps, .legend { grid-template-columns: 1fr; }
-  nav .links a.hide { display: none; }
-  section { padding: 64px 0; }
-  .hero { padding-top: 56px; }
-}
-@media (max-width: 480px) {
-  .wrap { padding: 0 16px; }
-  .stage { padding: 30px 12px 22px; }
-  .card .l { font-size: 17px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .card .lines, .card .l { transition: none; }
-}
-</style>
+</script>
 </head>
 <body>
 
-<nav>
+<div class="top">
   <div class="wrap">
-    <a class="brand" href="#"><img src="assets/logo.svg" alt="">Hifz</a>
-    <div class="links">
-      <a class="hide" href="#demo">Demo</a>
-      <a class="hide" href="#features">Features</a>
-      <a class="hide" href="#install">Install</a>
-      <a class="btn" href="https://github.com/aimanelahssini/hifz">GitHub</a>
-    </div>
+    <a class="brand" href="https://hifz.app/"><img src="assets/logo.svg" alt="">Hifz <span class="ar" lang="ar">حفظ</span></a>
+    <nav>
+      <a href="#always">Always on</a>
+      <a href="#walkthrough">Walkthrough</a>
+      <a href="#phonetics">Phonetics</a>
+      <a class="nav-dl" href="#download">Download</a>
+      <details class="lang">
+        <summary aria-label="Language">EN</summary>
+        <div class="menu" role="list">
+          <a href="./" data-lang="en" aria-current="page"><span>English</span><span lang="en">EN</span></a>
+          <a href="fr/" data-lang="fr"><span>Français</span><span lang="fr">FR</span></a>
+          <a href="ar/" data-lang="ar"><span>العربية</span><span lang="ar">AR</span></a>
+          <a href="id/" data-lang="id"><span>Bahasa Indonesia</span><span lang="id">ID</span></a>
+          <a href="es/" data-lang="es"><span>Español</span><span lang="es">ES</span></a>
+          <a href="tr/" data-lang="tr"><span>Türkçe</span><span lang="tr">TR</span></a>
+        </div>
+      </details>
+    </nav>
   </div>
-</nav>
+</div>
 
 <header class="hero">
-  <div class="wrap grid">
+  <div class="wrap">
     <div>
-      <span class="eyebrow">Free and open source · for GNOME</span>
-      <h1>Learn a surah by heart, <span>one ayah at a time.</span></h1>
-      <p class="lead">Hifz is a small prompter in the corner of your screen. The ayah you're on is
-        in white, the next ones wait in grey, and <b>Space</b> slides to the next one. Turn the
-        sound on and it's recited with you.</p>
-      <div class="cta">
-        <a class="btn gold" href="#install">Install on GNOME</a>
-        <a class="btn" href="#demo">▶ Watch the demo</a>
+      <p class="eyebrow"><span class="ar" lang="ar">حِفْظ</span>For macOS and Linux</p>
+      <h1>Learn a surah by heart, <em>one ayah at a time.</em></h1>
+      <p class="lead">Hifz keeps the surah you're memorising in a small card at the edge of your screen. The ayah you're on is in white, the next ones wait below. Press <b>↓</b> to move on, and turn on the recitation when you want to hear it.</p>
+      <div class="dl-row">
+        <a class="dl primary" href="downloads/Hifz-macOS.dmg" download>
+          <svg width="22" height="22" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+          <span class="t">Download for Mac</span>
+          <span class="s" data-size="Hifz-macOS.dmg">macOS 14 or later</span>
+        </a>
+        <a class="dl secondary" href="downloads/Hifz-linux-installer.sh" download>
+          <svg width="22" height="22" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.132 1.884 1.071.771-.06 1.592-.536 2.257-1.306.631-.765 1.683-1.084 2.378-1.503.348-.199.629-.469.649-.853.023-.4-.2-.811-.714-1.376v-.097l-.003-.003c-.17-.2-.25-.535-.338-.926-.085-.401-.182-.786-.492-1.046h-.003c-.059-.054-.123-.067-.188-.135a.357.357 0 00-.19-.064c.431-1.278.264-2.55-.173-3.694-.533-1.41-1.465-2.638-2.175-3.483-.796-1.005-1.576-1.957-1.56-3.368.026-2.152.236-6.133-3.544-6.139zm.529 3.405h.013c.213 0 .396.062.584.198.19.135.33.332.438.533.105.259.158.459.166.724 0-.02.006-.04.006-.06v.105a.086.086 0 01-.004-.021l-.004-.024a1.807 1.807 0 01-.15.706.953.953 0 01-.213.335.71.71 0 00-.088-.042c-.104-.045-.198-.064-.284-.133a1.312 1.312 0 00-.22-.066c.05-.06.146-.133.183-.198.053-.128.082-.264.088-.402v-.02a1.21 1.21 0 00-.061-.4c-.045-.134-.101-.2-.183-.333-.084-.066-.167-.132-.267-.132h-.016c-.093 0-.176.03-.262.132a.8.8 0 00-.205.334 1.18 1.18 0 00-.09.4v.019c.002.089.008.179.02.267-.193-.067-.438-.135-.607-.202a1.635 1.635 0 01-.018-.2v-.02a1.772 1.772 0 01.15-.768c.082-.22.232-.406.43-.533a.985.985 0 01.594-.2zm-2.962.059h.036c.142 0 .27.048.399.135.146.129.264.288.344.465.09.199.14.4.153.667v.004c.007.134.006.2-.002.266v.08c-.03.007-.056.018-.083.024-.152.055-.274.135-.393.2.012-.09.013-.18.003-.267v-.015c-.012-.133-.04-.2-.082-.333a.613.613 0 00-.166-.267.248.248 0 00-.183-.064h-.021c-.071.006-.13.04-.186.132a.552.552 0 00-.12.27.944.944 0 00-.023.33v.015c.012.135.037.2.08.334.046.134.098.2.166.268.01.009.02.018.034.024-.07.057-.117.07-.176.136a.304.304 0 01-.131.068 2.62 2.62 0 01-.275-.402 1.772 1.772 0 01-.155-.667 1.759 1.759 0 01.08-.668 1.43 1.43 0 01.283-.535c.128-.133.26-.2.418-.2zm1.37 1.706c.332 0 .733.065 1.216.399.293.2.523.269 1.052.468h.003c.255.136.405.266.478.399v-.131a.571.571 0 01.016.47c-.123.31-.516.643-1.063.842v.002c-.268.135-.501.333-.775.465-.276.135-.588.292-1.012.267a1.139 1.139 0 01-.448-.067 3.566 3.566 0 01-.322-.198c-.195-.135-.363-.332-.612-.465v-.005h-.005c-.4-.246-.616-.512-.686-.71-.07-.268-.005-.47.193-.6.224-.135.38-.271.483-.336.104-.074.143-.102.176-.131h.002v-.003c.169-.202.436-.47.839-.601.139-.036.294-.065.466-.065zm2.8 2.142c.358 1.417 1.196 3.475 1.735 4.473.286.534.855 1.659 1.102 3.024.156-.005.33.018.513.064.646-1.671-.546-3.467-1.089-3.966-.22-.2-.232-.335-.123-.335.59.534 1.365 1.572 1.646 2.757.13.535.16 1.104.021 1.67.067.028.135.06.205.067 1.032.534 1.413.938 1.23 1.537v-.043c-.06-.003-.12 0-.18 0h-.016c.151-.467-.182-.825-1.065-1.224-.915-.4-1.646-.336-1.77.465-.008.043-.013.066-.018.135-.068.023-.139.053-.209.064-.43.268-.662.669-.793 1.187-.13.533-.17 1.156-.205 1.869v.003c-.02.334-.17.838-.319 1.35-1.5 1.072-3.58 1.538-5.348.334a2.645 2.645 0 00-.402-.533 1.45 1.45 0 00-.275-.333c.182 0 .338-.03.465-.067a.615.615 0 00.314-.334c.108-.267 0-.697-.345-1.163-.345-.467-.931-.995-1.788-1.521-.63-.4-.986-.87-1.15-1.396-.165-.534-.143-1.085-.015-1.645.245-1.07.873-2.11 1.274-2.763.107-.065.037.135-.408.974-.396.751-1.14 2.497-.122 3.854a8.123 8.123 0 01.647-2.876c.564-1.278 1.743-3.504 1.836-5.268.048.036.217.135.289.202.218.133.38.333.59.465.21.201.477.335.876.335.039.003.075.006.11.006.412 0 .73-.134.997-.268.29-.134.52-.334.74-.4h.005c.467-.135.835-.402 1.044-.7zm2.185 8.958c.037.6.343 1.245.882 1.377.588.134 1.434-.333 1.791-.765l.211-.01c.315-.007.577.01.847.268l.003.003c.208.199.305.53.391.876.085.4.154.78.409 1.066.486.527.645.906.636 1.14l.003-.007v.018l-.003-.012c-.015.262-.185.396-.498.595-.63.401-1.746.712-2.457 1.57-.618.737-1.37 1.14-2.036 1.191-.664.053-1.237-.2-1.574-.898l-.005-.003c-.21-.4-.12-1.025.056-1.69.176-.668.428-1.344.463-1.897.037-.714.076-1.335.195-1.814.12-.465.308-.797.641-.984l.045-.022zm-10.814.049h.01c.053 0 .105.005.157.014.376.055.706.333 1.023.752l.91 1.664.003.003c.243.533.754 1.064 1.189 1.637.434.598.77 1.131.729 1.57v.006c-.057.744-.48 1.148-1.125 1.294-.645.135-1.52.002-2.395-.464-.968-.536-2.118-.469-2.857-.602-.369-.066-.61-.2-.723-.4-.11-.2-.113-.602.123-1.23v-.004l.002-.003c.117-.334.03-.752-.027-1.118-.055-.401-.083-.71.043-.94.16-.334.396-.4.69-.533.294-.135.64-.202.915-.47h.002v-.002c.256-.268.445-.601.668-.838.19-.201.38-.336.663-.336zm7.159-9.074c-.435.201-.945.535-1.488.535-.542 0-.97-.267-1.28-.466-.154-.134-.28-.268-.373-.335-.164-.134-.144-.333-.074-.333.109.016.129.134.199.2.096.066.215.2.36.333.292.2.68.467 1.167.467.485 0 1.053-.267 1.398-.466.195-.135.445-.334.648-.467.156-.136.149-.267.279-.267.128.016.034.134-.147.332a8.097 8.097 0 01-.69.468zm-1.082-1.583V5.64c-.006-.02.013-.042.029-.05.074-.043.18-.027.26.004.063 0 .16.067.15.135-.006.049-.085.066-.135.066-.055 0-.092-.043-.141-.068-.052-.018-.146-.008-.163-.065zm-.551 0c-.02.058-.113.049-.166.066-.047.025-.086.068-.14.068-.05 0-.13-.02-.136-.068-.01-.066.088-.133.15-.133.08-.031.184-.047.259-.005.019.009.036.03.03.05v.02h.003z"/></svg>
+          <span class="t">Download for Linux</span>
+          <span class="s" data-size="Hifz-linux-installer.sh">Ubuntu, Fedora, Arch…</span>
+        </a>
       </div>
-      <p class="small">French phonetics · 114 surahs · 8 reciters · works offline once listened</p>
+      <p class="fine">Version <span id="version">1.0.0</span> · Free and open source</p>
     </div>
+
     <div>
-      <div class="stage" aria-label="Try it: a working copy of the Hifz card">
-        <div class="bar">Fri 14:05</div>
-        <div class="card" id="card" tabindex="0" role="application" aria-label="Hifz card. Press Space for the next ayah, Backspace for the previous one.">
-          <div class="head"><span class="num">56</span><b>Al-Wâqi'a</b><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="where">·  Bismillah</span><span class="sp"></span>
-            <span class="speed" id="speed">1×</span>
-            <span class="spk" aria-hidden="true"><svg width="15" height="14" viewBox="0 0 15 14" fill="#fff"><path d="M0 4.5h3l4-3.5v12l-4-3.5H0z"/><path d="M9.5 4.5l4 4m0-4l-4 4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-            <span class="count" id="count"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.3l2.4 2.4 4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="n">0</span></span>
+      <div class="stage">
+        <div class="menubar"><span>Notes</span><span id="clock">21:58</span></div>
+        <div class="window" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="card" id="card" tabindex="0" role="application" aria-label="Try Hifz: use the down and up arrows to move between ayahs, M for the recitation">
+          <div class="head">
+            <span class="num">56</span><b>Al-Wâqi'a</b>
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span id="where">·  Bismillah</span><span class="sp"></span>
+            <span class="speed">1×</span>
+            <button type="button" class="spk" id="spk" aria-label="Recitation off" title="M">
+              <svg width="15" height="14" viewBox="0 0 15 14" aria-hidden="true">
+                <path d="M0 4.5h3l4-3.5v12l-4-3.5H0z" fill="currentColor"/>
+                <path id="spk-waves" d="M9.5 4.5l4 4m0-4l-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <span class="count zero" id="count"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 5.3l2.4 2.4 4.6-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="n">0</span></span>
           </div>
           <div class="view"><div class="lines" id="lines"></div></div>
           <div class="ask"><b>Finished Al-Wâqi'a?</b><small id="so-far">It will count as your first time</small>
-            <div><button id="no">Not yet</button><button class="yes" id="yes">Yes, I finished</button></div></div>
+            <div><button type="button" id="no">Not yet</button><button type="button" class="yes" id="yes">Yes, I finished</button></div>
+          </div>
         </div>
-        <div class="keys">Try it: <button id="slower" aria-label="Slower"><kbd>←</kbd></button><button id="faster" aria-label="Faster"><kbd>→</kbd></button><button id="prev" aria-label="Previous ayah"><kbd>⌫</kbd></button><button id="next" aria-label="Next ayah"><kbd>Space</kbd></button></div>
+      </div>
+      <div class="coach">
+        <div class="steps" aria-hidden="true"><span id="s1"></span><span id="s2"></span><span id="s3"></span><span id="s4"></span></div>
+        <p id="coach-text" aria-live="polite">Press <b>↓</b> to go to the next ayah.</p>
+        <div class="keys">
+          <button type="button" id="prev" aria-label="Previous ayah">↑</button>
+          <button type="button" id="next" aria-label="Next ayah">↓</button>
+        </div>
       </div>
     </div>
   </div>
 </header>
 
-<section id="demo">
+<section id="always">
   <div class="wrap">
-    <h2>See it in a minute and a half</h2>
-    <p class="sub">From the terminal to the last ayah of Al-Wâqi'a: pick a surah, read with Space, turn
-      on the recitation, speed it up, close it, open it again where you left off, and finish.</p>
+    <div class="intro">
+      <h2>Keep it on while you work</h2>
+      <p>Hifz sits in a corner of your desktop, on top of your other windows. You read one ayah, go back to your notes or your mail, then press ↓ when you're ready for the next.</p>
+    </div>
+    <div class="desk" id="desk" aria-hidden="true">
+      <div class="bar"><span>Desktop</span><span>22:00</span></div>
+      <div class="win notes">
+        <div class="tb"><span class="dots"><i></i><i></i><i></i></span>Notes</div>
+        <div class="body"><i style="width:88%"></i><i style="width:72%"></i><i style="width:94%"></i><i style="width:61%"></i><i style="width:80%"></i><i style="width:45%"></i></div>
+      </div>
+      <div class="win mail">
+        <div class="tb"><span class="dots"><i></i><i></i><i></i></span>Mail</div>
+        <div class="body"><i style="width:70%"></i><i style="width:92%"></i><i style="width:55%"></i><i style="width:78%"></i></div>
+      </div>
+      <div class="win cal">
+        <div class="tb"><span class="dots"><i></i><i></i><i></i></span>Calendar</div>
+        <div class="body"><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b>10</b><b>11</b><b>12</b><b>13</b><b>14</b></div>
+      </div>
+      <div class="fly" id="fly">
+        <div class="fh"><span>56</span><b>Al-Wâqi'a</b><span style="flex:1"></span><span>1×</span></div>
+        <div class="flines">
+          <p class="cur">Idhâ waqa'ati-l-wâqi'ah</p>
+          <p>Laysa liwaq'atihâ kâdhibah</p>
+          <p>Khâfidatour-râfi'ah</p>
+          <p>Idhâ roujjati-l-ardou rajjâ</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="walkthrough">
+  <div class="wrap">
+    <div class="intro">
+      <h2>The whole thing in a minute and a half</h2>
+      <p>Pick a surah, read it with the arrow keys, turn on the recitation, change the speed, close it and open it again where you were, then finish a round.</p>
+    </div>
     <div class="video">
       <video controls preload="metadata" poster="assets/demo-poster.jpg" playsinline>
         <source src="assets/demo.mp4" type="video/mp4">
@@ -236,206 +189,94 @@ footer a { color: var(--muted); }
   </div>
 </section>
 
-<section id="features" style="padding-top: 0">
-  <div class="wrap">
-    <h2>Small, quiet, and always there</h2>
-    <p class="sub">Everything you need to memorise, nothing in the way of what you're doing.</p>
-    <div class="features">
-      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h12M4 10h9M4 14h6"/></svg></div>
-        <h3>One ayah at a time</h3><p>The current ayah stays at the top in white. Space slides to the next one, Backspace goes back.</p></div>
-      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="3.5" width="15" height="13" rx="2.5"/><rect x="10" y="5.5" width="5.5" height="4" rx="1" fill="currentColor"/></svg></div>
-        <h3>Always on top</h3><p>In the top-right corner, above your windows, on every desktop, until you close it.</p></div>
-      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 7.5h3.5l4.5-4v13l-4.5-4H2z"/><path d="M13 7a4 4 0 0 1 0 6M15.5 4.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-        <h3>A recitation that follows you</h3><p>Turn the sound on and the ayah at the top is recited. Muted by default, with no sound stream at all.</p></div>
-      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 14a7 7 0 1 1 14 0"/><path d="M10 14l3.5-4.5"/></svg></div>
-        <h3>0.5× to 2×</h3><p>← and → change the speed by 0.05, shown next to the speaker and kept for next time. The voice keeps its pitch.</p></div>
-      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10v14l-5-3.5L5 17z"/></svg></div>
-        <h3>Picks up where you left off</h3><p>Close it any time. Next time it opens on the same surah, at the same ayah.</p></div>
-      <div class="feature"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg></div>
-        <h3>Counts your rounds</h3><p>At the last ayah it asks if you finished. Yes adds one to the counter in the corner.</p></div>
+<section id="phonetics">
+  <div class="wrap split">
+    <div>
+      <h2>Written the way it's recited</h2>
+      <p>The text is generated from the Tanzil Uthmani Quran and spelled the way French phonetic Qurans write it: the article assimilated, letters merged where the reciter merges them, and each ayah ending on its pausal form. Press <b>A</b> to show the Arabic under each line.</p>
+      <div class="sample">
+        <p class="ph">Idhâ waqa'ati-l-wâqi'ah</p>
+        <p class="ar" lang="ar">إِذَا وَقَعَتِ ٱلْوَاقِعَةُ</p>
+        <p class="ph">Laysa liwaq'atihâ kâdhibah</p>
+        <p class="ph">Khâfidatour-râfi'ah</p>
+      </div>
+      <dl class="legend">
+        <dt>ou</dt><dd>the Arabic u, as in qoul</dd>
+        <dt>â î oû</dt><dd>long vowels</dd>
+        <dt>ch kh gh</dt><dd>ش, خ and غ</dd>
+        <dt>'</dt><dd>a hamza or an ʿayn</dd>
+        <dt>-</dt><dd>words joined as they're recited: bismi-llâhi</dd>
+      </dl>
+    </div>
+    <div>
+      <h2>Keys</h2>
+      <p>Click the card once so it has the keyboard.</p>
+      <table class="keys">
+        <tr><td><kbd>↓</kbd><kbd>Space</kbd></td><td>Next ayah. With the recitation on, Space pauses and plays.</td></tr>
+        <tr><td><kbd>↑</kbd><kbd>⌫</kbd></td><td>Previous ayah</td></tr>
+        <tr><td><kbd>→</kbd><kbd>←</kbd></td><td>Faster or slower, 0.5× to 2×, the voice keeps its pitch</td></tr>
+        <tr><td><kbd>M</kbd></td><td>Recitation on or off</td></tr>
+        <tr><td><kbd>A</kbd></td><td>Show or hide the Arabic</td></tr>
+        <tr><td><kbd>H</kbd></td><td>Hide the card to a small book icon</td></tr>
+        <tr><td><kbd>Home</kbd></td><td>Back to the first ayah</td></tr>
+      </table>
+      <p style="margin-top:20px">Right-click for the reciter (eight to choose from), the position on screen, the 22:00 reminder and continuous play.</p>
     </div>
   </div>
 </section>
 
-<section style="padding-top: 0">
+<section id="download">
   <div class="wrap">
-    <div class="row">
-      <div class="txt"><h3>Type <code>quran</code>, pick a number</h3>
-        <p>The terminal lists the 114 surahs. Type a number (or press Enter for the last one) and
-          Hifz opens in the corner. Close the terminal: Hifz stays.</p>
-        <p><code>quran 56</code> and <code>quran waqia</code> work too, and clicking the surah's name on the card opens the list of all 114: finished ones in green, and a star to save the ones you're working on.</p></div>
-      <img src="assets/terminal.svg" alt="The quran command lists the 114 surahs with their numbers; typing 56 opens Al-Wâqi'a in the corner" loading="lazy">
+    <div class="intro">
+      <h2>Download</h2>
+      <p>Your progress stays on your computer. The recitation is downloaded per ayah the first time you play it, then works offline.</p>
     </div>
-    <div class="row flip">
-      <div class="txt"><h3>A smooth slide, not a jump</h3>
-        <p>No word-by-word highlighting to chase. Each press of Space slides the whole text up by one
-          ayah, so your eyes always come back to the same place.</p>
-        <p>The card keeps the same size for every surah. Long ayahs wrap and scroll inside it.</p></div>
-      <img src="assets/slide.svg" alt="Pressing Space slides the text up by one ayah" loading="lazy">
+    <div class="platforms">
+      <article class="platform">
+        <header>
+          <svg width="22" height="22" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+          <div><h3>macOS</h3><p class="req">macOS 14 Sonoma or later · Apple silicon</p></div>
+        </header>
+        <ol>
+          <li>Open <code>Hifz-macOS.dmg</code>.</li>
+          <li>Drag Hifz into Applications.</li>
+          <li>Open it. If macOS asks the first time, right-click Hifz and choose Open.</li>
+        </ol>
+        <a class="dl primary" href="downloads/Hifz-macOS.dmg" download>
+          <svg width="22" height="22" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+          <span class="t">Download for Mac</span>
+          <span class="s" data-size="Hifz-macOS.dmg">.dmg</span>
+        </a>
+      </article>
+      <article class="platform">
+        <header>
+          <svg width="22" height="22" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.132 1.884 1.071.771-.06 1.592-.536 2.257-1.306.631-.765 1.683-1.084 2.378-1.503.348-.199.629-.469.649-.853.023-.4-.2-.811-.714-1.376v-.097l-.003-.003c-.17-.2-.25-.535-.338-.926-.085-.401-.182-.786-.492-1.046h-.003c-.059-.054-.123-.067-.188-.135a.357.357 0 00-.19-.064c.431-1.278.264-2.55-.173-3.694-.533-1.41-1.465-2.638-2.175-3.483-.796-1.005-1.576-1.957-1.56-3.368.026-2.152.236-6.133-3.544-6.139zm.529 3.405h.013c.213 0 .396.062.584.198.19.135.33.332.438.533.105.259.158.459.166.724 0-.02.006-.04.006-.06v.105a.086.086 0 01-.004-.021l-.004-.024a1.807 1.807 0 01-.15.706.953.953 0 01-.213.335.71.71 0 00-.088-.042c-.104-.045-.198-.064-.284-.133a1.312 1.312 0 00-.22-.066c.05-.06.146-.133.183-.198.053-.128.082-.264.088-.402v-.02a1.21 1.21 0 00-.061-.4c-.045-.134-.101-.2-.183-.333-.084-.066-.167-.132-.267-.132h-.016c-.093 0-.176.03-.262.132a.8.8 0 00-.205.334 1.18 1.18 0 00-.09.4v.019c.002.089.008.179.02.267-.193-.067-.438-.135-.607-.202a1.635 1.635 0 01-.018-.2v-.02a1.772 1.772 0 01.15-.768c.082-.22.232-.406.43-.533a.985.985 0 01.594-.2zm-2.962.059h.036c.142 0 .27.048.399.135.146.129.264.288.344.465.09.199.14.4.153.667v.004c.007.134.006.2-.002.266v.08c-.03.007-.056.018-.083.024-.152.055-.274.135-.393.2.012-.09.013-.18.003-.267v-.015c-.012-.133-.04-.2-.082-.333a.613.613 0 00-.166-.267.248.248 0 00-.183-.064h-.021c-.071.006-.13.04-.186.132a.552.552 0 00-.12.27.944.944 0 00-.023.33v.015c.012.135.037.2.08.334.046.134.098.2.166.268.01.009.02.018.034.024-.07.057-.117.07-.176.136a.304.304 0 01-.131.068 2.62 2.62 0 01-.275-.402 1.772 1.772 0 01-.155-.667 1.759 1.759 0 01.08-.668 1.43 1.43 0 01.283-.535c.128-.133.26-.2.418-.2zm1.37 1.706c.332 0 .733.065 1.216.399.293.2.523.269 1.052.468h.003c.255.136.405.266.478.399v-.131a.571.571 0 01.016.47c-.123.31-.516.643-1.063.842v.002c-.268.135-.501.333-.775.465-.276.135-.588.292-1.012.267a1.139 1.139 0 01-.448-.067 3.566 3.566 0 01-.322-.198c-.195-.135-.363-.332-.612-.465v-.005h-.005c-.4-.246-.616-.512-.686-.71-.07-.268-.005-.47.193-.6.224-.135.38-.271.483-.336.104-.074.143-.102.176-.131h.002v-.003c.169-.202.436-.47.839-.601.139-.036.294-.065.466-.065zm2.8 2.142c.358 1.417 1.196 3.475 1.735 4.473.286.534.855 1.659 1.102 3.024.156-.005.33.018.513.064.646-1.671-.546-3.467-1.089-3.966-.22-.2-.232-.335-.123-.335.59.534 1.365 1.572 1.646 2.757.13.535.16 1.104.021 1.67.067.028.135.06.205.067 1.032.534 1.413.938 1.23 1.537v-.043c-.06-.003-.12 0-.18 0h-.016c.151-.467-.182-.825-1.065-1.224-.915-.4-1.646-.336-1.77.465-.008.043-.013.066-.018.135-.068.023-.139.053-.209.064-.43.268-.662.669-.793 1.187-.13.533-.17 1.156-.205 1.869v.003c-.02.334-.17.838-.319 1.35-1.5 1.072-3.58 1.538-5.348.334a2.645 2.645 0 00-.402-.533 1.45 1.45 0 00-.275-.333c.182 0 .338-.03.465-.067a.615.615 0 00.314-.334c.108-.267 0-.697-.345-1.163-.345-.467-.931-.995-1.788-1.521-.63-.4-.986-.87-1.15-1.396-.165-.534-.143-1.085-.015-1.645.245-1.07.873-2.11 1.274-2.763.107-.065.037.135-.408.974-.396.751-1.14 2.497-.122 3.854a8.123 8.123 0 01.647-2.876c.564-1.278 1.743-3.504 1.836-5.268.048.036.217.135.289.202.218.133.38.333.59.465.21.201.477.335.876.335.039.003.075.006.11.006.412 0 .73-.134.997-.268.29-.134.52-.334.74-.4h.005c.467-.135.835-.402 1.044-.7zm2.185 8.958c.037.6.343 1.245.882 1.377.588.134 1.434-.333 1.791-.765l.211-.01c.315-.007.577.01.847.268l.003.003c.208.199.305.53.391.876.085.4.154.78.409 1.066.486.527.645.906.636 1.14l.003-.007v.018l-.003-.012c-.015.262-.185.396-.498.595-.63.401-1.746.712-2.457 1.57-.618.737-1.37 1.14-2.036 1.191-.664.053-1.237-.2-1.574-.898l-.005-.003c-.21-.4-.12-1.025.056-1.69.176-.668.428-1.344.463-1.897.037-.714.076-1.335.195-1.814.12-.465.308-.797.641-.984l.045-.022zm-10.814.049h.01c.053 0 .105.005.157.014.376.055.706.333 1.023.752l.91 1.664.003.003c.243.533.754 1.064 1.189 1.637.434.598.77 1.131.729 1.57v.006c-.057.744-.48 1.148-1.125 1.294-.645.135-1.52.002-2.395-.464-.968-.536-2.118-.469-2.857-.602-.369-.066-.61-.2-.723-.4-.11-.2-.113-.602.123-1.23v-.004l.002-.003c.117-.334.03-.752-.027-1.118-.055-.401-.083-.71.043-.94.16-.334.396-.4.69-.533.294-.135.64-.202.915-.47h.002v-.002c.256-.268.445-.601.668-.838.19-.201.38-.336.663-.336zm7.159-9.074c-.435.201-.945.535-1.488.535-.542 0-.97-.267-1.28-.466-.154-.134-.28-.268-.373-.335-.164-.134-.144-.333-.074-.333.109.016.129.134.199.2.096.066.215.2.36.333.292.2.68.467 1.167.467.485 0 1.053-.267 1.398-.466.195-.135.445-.334.648-.467.156-.136.149-.267.279-.267.128.016.034.134-.147.332a8.097 8.097 0 01-.69.468zm-1.082-1.583V5.64c-.006-.02.013-.042.029-.05.074-.043.18-.027.26.004.063 0 .16.067.15.135-.006.049-.085.066-.135.066-.055 0-.092-.043-.141-.068-.052-.018-.146-.008-.163-.065zm-.551 0c-.02.058-.113.049-.166.066-.047.025-.086.068-.14.068-.05 0-.13-.02-.136-.068-.01-.066.088-.133.15-.133.08-.031.184-.047.259-.005.019.009.036.03.03.05v.02h.003z"/></svg>
+          <div><h3>Linux</h3><p class="req">Linux · Ubuntu, Fedora, Arch, openSUSE and others</p></div>
+        </header>
+        <ol>
+          <li>Download the installer, then run: <code>bash Hifz-linux-installer.sh</code></li>
+          <li>It installs dependencies with apt, dnf, pacman or zypper when needed.</li>
+          <li>On GNOME, log out once so the corner pin loads. Elsewhere, open Hifz from your apps.</li>
+        </ol>
+        <a class="dl secondary" href="downloads/Hifz-linux-installer.sh" download>
+          <svg width="22" height="22" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.132 1.884 1.071.771-.06 1.592-.536 2.257-1.306.631-.765 1.683-1.084 2.378-1.503.348-.199.629-.469.649-.853.023-.4-.2-.811-.714-1.376v-.097l-.003-.003c-.17-.2-.25-.535-.338-.926-.085-.401-.182-.786-.492-1.046h-.003c-.059-.054-.123-.067-.188-.135a.357.357 0 00-.19-.064c.431-1.278.264-2.55-.173-3.694-.533-1.41-1.465-2.638-2.175-3.483-.796-1.005-1.576-1.957-1.56-3.368.026-2.152.236-6.133-3.544-6.139zm.529 3.405h.013c.213 0 .396.062.584.198.19.135.33.332.438.533.105.259.158.459.166.724 0-.02.006-.04.006-.06v.105a.086.086 0 01-.004-.021l-.004-.024a1.807 1.807 0 01-.15.706.953.953 0 01-.213.335.71.71 0 00-.088-.042c-.104-.045-.198-.064-.284-.133a1.312 1.312 0 00-.22-.066c.05-.06.146-.133.183-.198.053-.128.082-.264.088-.402v-.02a1.21 1.21 0 00-.061-.4c-.045-.134-.101-.2-.183-.333-.084-.066-.167-.132-.267-.132h-.016c-.093 0-.176.03-.262.132a.8.8 0 00-.205.334 1.18 1.18 0 00-.09.4v.019c.002.089.008.179.02.267-.193-.067-.438-.135-.607-.202a1.635 1.635 0 01-.018-.2v-.02a1.772 1.772 0 01.15-.768c.082-.22.232-.406.43-.533a.985.985 0 01.594-.2zm-2.962.059h.036c.142 0 .27.048.399.135.146.129.264.288.344.465.09.199.14.4.153.667v.004c.007.134.006.2-.002.266v.08c-.03.007-.056.018-.083.024-.152.055-.274.135-.393.2.012-.09.013-.18.003-.267v-.015c-.012-.133-.04-.2-.082-.333a.613.613 0 00-.166-.267.248.248 0 00-.183-.064h-.021c-.071.006-.13.04-.186.132a.552.552 0 00-.12.27.944.944 0 00-.023.33v.015c.012.135.037.2.08.334.046.134.098.2.166.268.01.009.02.018.034.024-.07.057-.117.07-.176.136a.304.304 0 01-.131.068 2.62 2.62 0 01-.275-.402 1.772 1.772 0 01-.155-.667 1.759 1.759 0 01.08-.668 1.43 1.43 0 01.283-.535c.128-.133.26-.2.418-.2zm1.37 1.706c.332 0 .733.065 1.216.399.293.2.523.269 1.052.468h.003c.255.136.405.266.478.399v-.131a.571.571 0 01.016.47c-.123.31-.516.643-1.063.842v.002c-.268.135-.501.333-.775.465-.276.135-.588.292-1.012.267a1.139 1.139 0 01-.448-.067 3.566 3.566 0 01-.322-.198c-.195-.135-.363-.332-.612-.465v-.005h-.005c-.4-.246-.616-.512-.686-.71-.07-.268-.005-.47.193-.6.224-.135.38-.271.483-.336.104-.074.143-.102.176-.131h.002v-.003c.169-.202.436-.47.839-.601.139-.036.294-.065.466-.065zm2.8 2.142c.358 1.417 1.196 3.475 1.735 4.473.286.534.855 1.659 1.102 3.024.156-.005.33.018.513.064.646-1.671-.546-3.467-1.089-3.966-.22-.2-.232-.335-.123-.335.59.534 1.365 1.572 1.646 2.757.13.535.16 1.104.021 1.67.067.028.135.06.205.067 1.032.534 1.413.938 1.23 1.537v-.043c-.06-.003-.12 0-.18 0h-.016c.151-.467-.182-.825-1.065-1.224-.915-.4-1.646-.336-1.77.465-.008.043-.013.066-.018.135-.068.023-.139.053-.209.064-.43.268-.662.669-.793 1.187-.13.533-.17 1.156-.205 1.869v.003c-.02.334-.17.838-.319 1.35-1.5 1.072-3.58 1.538-5.348.334a2.645 2.645 0 00-.402-.533 1.45 1.45 0 00-.275-.333c.182 0 .338-.03.465-.067a.615.615 0 00.314-.334c.108-.267 0-.697-.345-1.163-.345-.467-.931-.995-1.788-1.521-.63-.4-.986-.87-1.15-1.396-.165-.534-.143-1.085-.015-1.645.245-1.07.873-2.11 1.274-2.763.107-.065.037.135-.408.974-.396.751-1.14 2.497-.122 3.854a8.123 8.123 0 01.647-2.876c.564-1.278 1.743-3.504 1.836-5.268.048.036.217.135.289.202.218.133.38.333.59.465.21.201.477.335.876.335.039.003.075.006.11.006.412 0 .73-.134.997-.268.29-.134.52-.334.74-.4h.005c.467-.135.835-.402 1.044-.7zm2.185 8.958c.037.6.343 1.245.882 1.377.588.134 1.434-.333 1.791-.765l.211-.01c.315-.007.577.01.847.268l.003.003c.208.199.305.53.391.876.085.4.154.78.409 1.066.486.527.645.906.636 1.14l.003-.007v.018l-.003-.012c-.015.262-.185.396-.498.595-.63.401-1.746.712-2.457 1.57-.618.737-1.37 1.14-2.036 1.191-.664.053-1.237-.2-1.574-.898l-.005-.003c-.21-.4-.12-1.025.056-1.69.176-.668.428-1.344.463-1.897.037-.714.076-1.335.195-1.814.12-.465.308-.797.641-.984l.045-.022zm-10.814.049h.01c.053 0 .105.005.157.014.376.055.706.333 1.023.752l.91 1.664.003.003c.243.533.754 1.064 1.189 1.637.434.598.77 1.131.729 1.57v.006c-.057.744-.48 1.148-1.125 1.294-.645.135-1.52.002-2.395-.464-.968-.536-2.118-.469-2.857-.602-.369-.066-.61-.2-.723-.4-.11-.2-.113-.602.123-1.23v-.004l.002-.003c.117-.334.03-.752-.027-1.118-.055-.401-.083-.71.043-.94.16-.334.396-.4.69-.533.294-.135.64-.202.915-.47h.002v-.002c.256-.268.445-.601.668-.838.19-.201.38-.336.663-.336zm7.159-9.074c-.435.201-.945.535-1.488.535-.542 0-.97-.267-1.28-.466-.154-.134-.28-.268-.373-.335-.164-.134-.144-.333-.074-.333.109.016.129.134.199.2.096.066.215.2.36.333.292.2.68.467 1.167.467.485 0 1.053-.267 1.398-.466.195-.135.445-.334.648-.467.156-.136.149-.267.279-.267.128.016.034.134-.147.332a8.097 8.097 0 01-.69.468zm-1.082-1.583V5.64c-.006-.02.013-.042.029-.05.074-.043.18-.027.26.004.063 0 .16.067.15.135-.006.049-.085.066-.135.066-.055 0-.092-.043-.141-.068-.052-.018-.146-.008-.163-.065zm-.551 0c-.02.058-.113.049-.166.066-.047.025-.086.068-.14.068-.05 0-.13-.02-.136-.068-.01-.066.088-.133.15-.133.08-.031.184-.047.259-.005.019.009.036.03.03.05v.02h.003z"/></svg>
+          <span class="t">Download for Linux</span>
+          <span class="s" data-size="Hifz-linux-installer.sh">.sh</span>
+        </a>
+      </article>
     </div>
-    <div class="row">
-      <div class="txt"><h3>Right-click for the rest</h3>
-        <p>Speed, reciter (Mishary Alafasy, Al-Husary, Al-Minshawi, Abdul Basit, As-Sudais, Al-Muaiqly,
-          Ash-Shuraim, Ad-Dosari), continue automatically, the Arabic under each line, and back to
-          the beginning.</p></div>
-      <img src="assets/menu.svg" alt="The right-click menu with speeds and options" loading="lazy">
-    </div>
-    <div class="row flip">
-      <div class="txt"><h3>Every surah, one click away</h3>
-        <p>Click the surah's name for all 114 with their numbers and a search box. The ones you've
-          finished are green; a star saves the ones you're working on, and they come first.</p></div>
-      <img src="assets/dropdown.svg" alt="The surah list with a search box, saved surahs and finished ones in green" loading="lazy">
-    </div>
-    <div class="row">
-      <div class="txt"><h3>Every evening at 22:00</h3>
-        <p>A notification reminds you to recite Al-Wâqi'a. Click it and Hifz opens on Al-Wâqi'a,
-          even when it's closed. The round button in the header decides what follows a finished
-          surah: again, the next, the previous, or a random one.</p></div>
-      <img src="assets/evening.svg" alt="The end-of-surah button with four choices and the 22:00 reminder notification" loading="lazy">
-    </div>
-    <div class="row flip">
-      <div class="txt"><h3>Finished? Count it.</h3>
-        <p>At the last ayah a question appears over the blurred text. Yes adds one to the small
-          counter and opens what comes next, waiting on its first line until you're ready.</p>
-        <p>Every round is kept with its date. <code>quran stats</code> shows them all.</p></div>
-      <img src="assets/finish.svg" alt="At the last ayah, Finished Al-Wâqi'a? with Not yet and Yes buttons" loading="lazy">
-    </div>
-  </div>
-</section>
-
-<section style="padding-top: 0">
-  <div class="wrap">
-    <h2>Phonetics written for French readers</h2>
-    <p class="sub">Generated from the verified Tanzil text and written the way it's recited: the article
-      assimilated, letters merged where the reciter merges them, pausal endings at the end of each ayah.</p>
-    <div class="sample">
-      <p>Idhâ waqa'ati-l-wâqi'ah</p>
-      <p class="ar">إِذَا وَقَعَتِ ٱلْوَاقِعَةُ</p>
-      <p>Laysa liwaq'atihâ kâdhibah</p>
-      <p>Khâfidatour-râfi'ah</p>
-    </div>
-    <div class="legend">
-      <div><b>ou</b><span>the Arabic u: qoul</span></div>
-      <div><b>â î oû</b><span>long vowels</span></div>
-      <div><b>ch kh gh</b><span>ش, خ, غ</span></div>
-      <div><b>th dh</b><span>ث, ذ and ظ</span></div>
-      <div><b>'</b><span>hamza or ʿayn</span></div>
-      <div><b>-</b><span>joined as recited: bismi-llâhi</span></div>
-    </div>
-  </div>
-</section>
-
-<section id="install" style="padding-top: 0">
-  <div class="wrap">
-    <h2>Install</h2>
-    <p class="sub">For GNOME 50 on Wayland (made on Fedora 44). The installer adds GTK 4, libadwaita and
-      GStreamer if they're missing.</p>
-    <pre id="cmd"><button class="copy" data-copy="git clone https://github.com/aimanelahssini/hifz
-cd hifz
-./install.sh">Copy</button>git clone https://github.com/aimanelahssini/hifz
-cd hifz
-./install.sh</pre>
-    <div class="steps">
-      <div class="step"><b>1 · Log out and back in</b><span>once, so GNOME loads the little extension that keeps Hifz in the corner.</span></div>
-      <div class="step"><b>2 · Type <code>quran</code></b><span>in a terminal and pick a surah. Al-Wâqi'a the first time.</span></div>
-      <div class="step"><b>3 · Click the card, press Space</b><span>and the next ayah slides up. M turns the recitation on.</span></div>
-    </div>
-  </div>
-</section>
-
-<section class="faq" style="padding-top: 0">
-  <div class="wrap">
-    <h2>Questions</h2>
-    <details><summary>Does it work offline?</summary><p>The text is in the app, so reading always works. The recitation is downloaded the first time you play each ayah and kept, so a surah you've listened to once works offline afterwards.</p></details>
-    <details><summary>Does it work on other desktops than GNOME?</summary><p>Hifz is a GTK 4 app, so it opens anywhere GTK runs, as a normal window. Keeping it on top in the corner and on every desktop is done by a small GNOME Shell extension.</p></details>
-    <details><summary>Is the phonetic text exact?</summary><p>It follows the recitation closely (assimilation, idghâm, iqlâb, pausal forms), but no transliteration replaces the Arabic. Press A to show the Arabic under each line, and check with a teacher.</p></details>
-    <details><summary>Where is my progress kept?</summary><p>On your computer only, in <code>~/.local/state/hifz/progress.json</code>: the ayah you're at in each surah, how many times you finished it and when, and your settings. Nothing is sent anywhere.</p></details>
-    <details><summary>Is it free?</summary><p>Yes. Hifz is open source under the MIT license. The Quran text is the Tanzil Uthmani text (CC BY 3.0) and the recitations come from everyayah.com.</p></details>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <span>Hifz · MIT · Quran text: <a href="https://tanzil.net">Tanzil Project</a> · Recitations: <a href="https://everyayah.com">everyayah.com</a></span>
-    <a href="https://github.com/aimanelahssini/hifz">github.com/aimanelahssini/hifz</a>
+    <span>Quran text from the <a href="https://tanzil.net">Tanzil Project</a> (CC BY 3.0) · Recitations from <a href="https://everyayah.com">everyayah.com</a></span>
+    <span><a href="https://github.com/aimanelahssini/hifz">Source code</a> · MIT license</span>
   </div>
 </footer>
 
-<script>
-(() => {
-  const card = document.getElementById('card');
-  const box = document.getElementById('lines');
-  const where = document.getElementById('where');
-  const count = document.getElementById('count');
-  const n = document.getElementById('n');
-  let lines = [], i = 0, done = 0;
-  try { done = +localStorage.getItem('hifz-demo-done') || 0; } catch (e) {}
-  n.textContent = done;
-
-  function render() {
-    [...box.children].slice(0, lines.length).forEach((el, k) => {
-      const d = k - i;
-      el.className = 'l' + (d < 0 ? ' past' : d === 0 ? ' cur' : d === 2 ? ' d2' : d === 3 ? ' d3' : d > 3 ? ' far' : '');
-    });
-    const el = box.children[i];
-    if (el) box.style.transform = `translateY(${-el.offsetTop}px)`;
-    where.textContent = i ? `·  ${i} / ${lines.length - 1}` : '·  Bismillah';
-  }
-  function next() {
-    if (card.classList.contains('finishing')) return;
-    if (i >= lines.length - 1) {
-      document.getElementById('so-far').textContent = done ? `Finished ${done} time${done > 1 ? 's' : ''} so far` : 'It will count as your first time';
-      card.classList.add('finishing');
-      return;
-    }
-    i++; render();
-  }
-  function prev() {
-    if (card.classList.contains('finishing')) { card.classList.remove('finishing'); return; }
-    if (i > 0) { i--; render(); }
-  }
-  let speed = 1;
-  function setSpeed(v) {
-    speed = Math.round(Math.min(2, Math.max(0.5, v)) * 20) / 20;
-    document.getElementById('speed').textContent = `${+speed.toFixed(2)}×`;
-  }
-  document.getElementById('faster').addEventListener('click', () => setSpeed(speed + 0.05));
-  document.getElementById('slower').addEventListener('click', () => setSpeed(speed - 0.05));
-  function answer(yes) {
-    card.classList.remove('finishing');
-    if (!yes) return;
-    done++; n.textContent = done;
-    try { localStorage.setItem('hifz-demo-done', done); } catch (e) {}
-    count.classList.add('bump'); setTimeout(() => count.classList.remove('bump'), 900);
-    i = 0; render();
-  }
-  fetch('waqia.json').then(r => r.json()).then(l => {
-    lines = l;
-    box.innerHTML = l.map(s => `<div class="l"></div>`).join('') + '<div class="endhint">Finished? Press Space or scroll</div>';
-    [...box.children].forEach((el, k) => { if (k < l.length) el.textContent = l[k]; });
-    render();
-  });
-  card.addEventListener('keydown', e => {
-    if (card.classList.contains('finishing')) {
-      if (e.key === 'Enter') { answer(true); e.preventDefault(); }
-      if (e.key === 'Escape' || e.key === 'Backspace') { answer(false); e.preventDefault(); }
-      return;
-    }
-    if ([' ', 'ArrowDown'].includes(e.key)) { next(); e.preventDefault(); }
-    if (['Backspace', 'ArrowUp'].includes(e.key)) { prev(); e.preventDefault(); }
-    if (e.key === 'ArrowRight') { setSpeed(speed + 0.05); e.preventDefault(); }
-    if (e.key === 'ArrowLeft') { setSpeed(speed - 0.05); e.preventDefault(); }
-  });
-  card.addEventListener('click', e => { if (!e.target.closest('button')) { card.focus(); next(); } });
-  document.getElementById('next').addEventListener('click', () => { next(); });
-  document.getElementById('prev').addEventListener('click', () => { prev(); });
-  document.getElementById('yes').addEventListener('click', () => answer(true));
-  document.getElementById('no').addEventListener('click', () => answer(false));
-  window.addEventListener('resize', render);
-  document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', () => {
-    navigator.clipboard?.writeText(b.dataset.copy).then(() => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy', 1500); });
-  }));
-})();
-</script>
+<script>window.HIFZ = {"locale": "en", "assetRoot": "", "whereBismillah": "·  Bismillah", "whereAyah": "·  {n} / {total}", "endHint": "Finished? Press ↓", "soFarFirst": "It will count as your first time", "soFarOne": "Finished 1 time so far", "soFarN": "Finished {n} times so far", "recitationOff": "Recitation off", "recitationOn": "Recitation on", "coach": {"1": "Press <b>↓</b> to go to the next ayah.", "2": "Now turn on the recitation with the <b>speaker</b> in the card.", "3": "Listen to this ayah…", "4": "Press <b>↓</b> for the next ayah.", "5": "Press <b>↓</b> once more.", "6": "Keep Hifz on while you work — it lives in a corner of your desktop."}};</script>
+<script src="assets/geo.js" defer></script>
+<script src="assets/demo.js" defer></script>
 </body>
 </html>

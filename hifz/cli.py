@@ -74,6 +74,13 @@ def show_list(state, color):
 
 def launch(n):
     """Start the window in its own session, detached from this terminal."""
+    if sys.platform == 'darwin':
+        # Native macOS app: open (or switch) via the hifz:// URL scheme.
+        print(f'[hifz] launch via open -a Hifz hifz://surah/{n}', file=sys.stderr)
+        subprocess.Popen(['open', '-a', 'Hifz', f'hifz://surah/{n}'],
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+        return
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env = dict(os.environ)
     env['PYTHONPATH'] = here + os.pathsep + env.get('PYTHONPATH', '')

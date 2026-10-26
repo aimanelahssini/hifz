@@ -1,0 +1,80 @@
+name: Hifz
+options:
+  bundleIdPrefix: io.github.aimanelahssini
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    PRODUCT_BUNDLE_IDENTIFIER: io.github.aimanelahssini.Hifz
+    MARKETING_VERSION: "1.0.1"
+    CURRENT_PROJECT_VERSION: "2"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_ALLOWED: YES
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    COMBINE_HIDPI_IMAGES: YES
+targets:
+  Hifz:
+    type: application
+    platform: macOS
+    sources:
+      - path: Hifz
+        excludes:
+          - "**/*.md"
+    resources:
+      - path: Hifz/Resources
+      - path: Hifz/Assets.xcassets
+    settings:
+      base:
+        INFOPLIST_FILE: Hifz/Info.plist
+        PRODUCT_NAME: Hifz
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.aimanelahssini.Hifz
+        GENERATE_INFOPLIST_FILE: false
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_TESTABILITY: YES
+    preBuildScripts:
+      - name: Export Quran JSON
+        script: |
+          export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:$PATH"
+          ROOT="${SRCROOT}/.."
+          OUT="${SRCROOT}/Hifz/Resources/quran.json"
+          mkdir -p "$(dirname "$OUT")"
+          HIFZ_QURAN_JSON="$OUT" /usr/bin/python3 "${SRCROOT}/tools/export_quran.py"
+          # Bundle Tanzil translations next to quran.json
+          mkdir -p "${SRCROOT}/Hifz/Resources/trans"
+          rsync -a --delete --include='*.txt' --exclude='*' \
+            "${SRCROOT}/../hifz/data/trans/" "${SRCROOT}/Hifz/Resources/trans/"
+        basedOnDependencyAnalysis: false
+  HifzTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: HifzTests
+    dependencies:
+      - target: Hifz
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.aimanelahssini.HifzTests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Hifz.app/Contents/MacOS/Hifz"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        ENABLE_TESTABILITY: YES
+schemes:
+  Hifz:
+    build:
+      targets:
+        Hifz: all
+        HifzTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - HifzTests
+    archive:
+      config: Release

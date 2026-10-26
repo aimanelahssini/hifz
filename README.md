@@ -152,6 +152,25 @@ still the best way to get every letter right.
 ./uninstall.sh --all    # removes your progress too
 ```
 
+## On macOS
+
+Download **Hifz-macOS.zip** from the site, unzip, and drag `Hifz.app` into Applications.
+
+To build from source (Xcode + [XcodeGen](https://github.com/yonaskolb/XcodeGen) via Homebrew):
+
+```bash
+cd macos && ./build.sh
+```
+
+That also installs the `quran` / `hifz` commands. Progress:
+`~/Library/Application Support/Hifz/progress.json`.
+
+To refresh the site download packages:
+
+```bash
+./scripts/package.sh
+```
+
 ## On phones
 
 The Android and iPhone apps are planned: a card floating over other apps on Android, the
@@ -165,6 +184,7 @@ python3 -m unittest discover tests      # phonetics, against hand-checked ayahs
 tests/shell/run.sh                      # the app in a throwaway headless GNOME Shell
 tests/shell/demo.sh                     # records docs/demo.mp4 the same way
 python3 docs/illustrations.py           # redraws the SVGs in docs/
+cd macos && ./build.sh                  # native macOS app
 ```
 
 The shell tests never touch your real settings, progress or speakers: everything goes to a
