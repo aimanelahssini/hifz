@@ -10,7 +10,7 @@ import unittest
 
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import GLib  # noqa: E402
+from gi.repository import GLib, Gst  # noqa: E402
 
 os.environ['HIFZ_AUDIO_SINK'] = 'fakesink sync=true'
 from hifz import audio  # noqa: E402
@@ -49,6 +49,7 @@ class Player(unittest.TestCase):
         started, ended = [], []
         p = audio.Player(lambda: ended.append(p.playing), lambda: started.append(p.playing))
         p.start()
+        p.breath = 0
         p.play(ayah(9))
         p.queued = [ayah(10)]
         run(0.6)
@@ -62,20 +63,50 @@ class Player(unittest.TestCase):
         self.assertEqual(started, [ayah(6)], 'only ayah 6 follows ayah 5')
 
     def test_a_breath_between_ayahs(self):
-        """With a pause set, the next ayah starts after the silence, and only it moves the text."""
-        started = []
+        """With a pause set, the next ayah starts after the breath, and only then moves the text."""
+        started, times = [], []
         t0 = time.monotonic()
-        times = []
         p = audio.Player(lambda: None, lambda: (started.append(p.playing), times.append(time.monotonic() - t0)))
         p.start()
         p.set_speed(2.0)
+        p.breath = 0.4
         p.play(ayah(1))
-        p.queued = [audio.silence(0.4), ayah(2)]
+        p.queued = [ayah(2)]
         run(10, until=lambda: started)
         p.stop()
         self.assertEqual(started, [ayah(2)])
-        # 056001 lasts about 3.5 s: at 2x, 1.75 s, then the 0.4 s pause at 2x (0.2 s).
+        # 056001 lasts about 3.5 s: at 2x, 1.75 s, then the 0.4 s breath at 2x (0.2 s).
         self.assertAlmostEqual(times[0], 1.75 + 0.2, delta=0.25)
+
+    def test_speed_keeps_its_timing(self):
+        """SoundTouch at 1.1x: the ayah lasts its length / 1.1."""
+        ended = []
+        t0 = time.monotonic()
+        p = audio.Player(lambda: ended.append(time.monotonic() - t0), None)
+        p.start()
+        p.set_speed(1.1)
+        p.play(ayah(1))
+        self.assertEqual(p._cur.tempo.get_factory().get_name(), 'pitch')
+        run(10, until=lambda: ended)
+        p.stop()
+        self.assertAlmostEqual(ended[0], 3.49 / 1.1, delta=0.25)
+
+    def test_moving_away_fades_instead_of_cutting(self):
+        """A cut mid-sound clicks: the ayah you leave fades out over a few ms first."""
+        p = audio.Player(lambda: None, None)
+        p.start()
+        p.play(ayah(1))
+        run(0.8)
+        old = p._cur.pipe
+        volumes = []
+        old.connect('notify::volume', lambda *_: volumes.append(old.get_property('volume')))
+        p.halt()
+        run(0.3)
+        self.assertGreater(len(volumes), 3, 'several steps, not a jump')
+        self.assertEqual(volumes, sorted(volumes, reverse=True))
+        self.assertAlmostEqual(volumes[-1], 0.0)
+        self.assertEqual(old.get_state(0)[1], Gst.State.NULL)
+        p.stop()
 
 
 if __name__ == '__main__':

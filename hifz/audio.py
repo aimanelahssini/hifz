@@ -89,168 +89,177 @@ def _log(*what):
             f.write(' '.join(str(w) for w in (GLib.get_monotonic_time(),) + what) + '\n')
 
 
-def silence(seconds):
-    """A short silent file, the breath between two ayahs when the recitation continues."""
-    ms = int(round(seconds * 1000))
-    path = os.path.join(os.path.dirname(cache_dir('x')), f'pause-{ms}.wav')
-    if not os.path.exists(path):
-        import wave
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        tmp = path + '.part'
-        with wave.open(tmp, 'wb') as w:
-            w.setnchannels(1)
-            w.setsampwidth(2)
-            w.setframerate(44100)
-            w.writeframes(b'\0\0' * (44100 * ms // 1000))
-        os.replace(tmp, path)
-    return path
+FADE_OUT_MS = 40          # moving away mid-ayah: a quick fade, never a cut (a cut clicks)
+FADE_IN_MS = 15
+
+
+class _Ayah:
+    """One ayah's own little pipeline: the file, SoundTouch for the speed, the sound output."""
+
+    def __init__(self, path, speed, on_eos):
+        self.path = path
+        self.pipe = Gst.ElementFactory.make('playbin', None)
+        self.pipe.set_property('video-sink', Gst.ElementFactory.make('fakesink', None))
+        # SoundTouch's "pitch" element: changes the speed and keeps the voice as it is.
+        self.tempo = Gst.ElementFactory.make('pitch', None)
+        if self.tempo is not None:
+            self.tempo.set_property('tempo', speed)
+            self.pipe.set_property('audio-filter', self.tempo)
+        sink = os.environ.get('HIFZ_AUDIO_SINK')      # tests: "fakesink sync=true"
+        if sink:
+            self.pipe.set_property('audio-sink', Gst.parse_launch(sink))
+        self.pipe.set_property('uri', Gst.filename_to_uri(path))
+        self.pipe.set_property('volume', 0.0)
+        bus = self.pipe.get_bus()
+        bus.add_signal_watch()
+        bus.connect('message::eos', lambda *_: on_eos(self))
+        bus.connect('message::error', lambda *_: on_eos(self))
+        self.pipe.set_state(Gst.State.PAUSED)     # ready to start at once
+
+    def set_speed(self, speed):
+        if self.tempo is not None:
+            self.tempo.set_property('tempo', speed)
+
+    def start(self):
+        self.pipe.set_state(Gst.State.PLAYING)
+        _ramp(self.pipe, 0.0, 1.0, FADE_IN_MS)
+
+    def dispose(self, fade=True):
+        """Stop it, fading out first if it is sounding."""
+        pipe, self.pipe = self.pipe, None
+        if pipe is None:
+            return
+
+        def end():
+            pipe.set_state(Gst.State.NULL)
+            pipe.get_bus().remove_signal_watch()
+        if fade and pipe.get_state(0)[1] == Gst.State.PLAYING:
+            _ramp(pipe, pipe.get_property('volume'), 0.0, FADE_OUT_MS, end)
+        else:
+            end()
+
+
+def _ramp(pipe, start, stop, ms, done=None):
+    steps = max(1, ms // 5)
+    state = {'k': 0}
+
+    def step():
+        state['k'] += 1
+        pipe.set_property('volume', start + (stop - start) * state['k'] / steps)
+        if state['k'] < steps:
+            return True
+        if done:
+            done()
+        return False
+    pipe.set_property('volume', start)
+    GLib.timeout_add(5, step)
 
 
 class Player:
-    """Plays one ayah at a time. Call start() to create the pipeline and stop() to drop it.
+    """Plays one ayah at a time. Call start() to switch the sound on and stop() to drop it all.
 
-    Speed is the playback rate, with scaletempo keeping the voice at its pitch. A change while
-    playing is an instant rate change (no flush, no gap), and with "continue automatically"
-    the next ayah is handed to playbin before the current one ends (gapless).
+    Each ayah has its own short pipeline. With "continue automatically" the next one is
+    prepared while the current one plays, and starts right when it ends, after the breath.
     """
 
     def __init__(self, on_end, on_next=None):
         Gst.init(None)
         self.on_end = on_end
-        self.on_next = on_next     # a queued ayah has started (gapless)
-        self.queued = []           # what follows this file: [a pause,] the next ayah
-        self._gapless = None       # (generation, file) handed over, until it starts
-        self._gen = 0              # a new one at every play or stop: older signals are ignored
-        self._starting = False
-        self.pipe = None
+        self.on_next = on_next     # the queued ayah has started
         self.speed = 1.0
+        self.breath = 0.0          # seconds of silence between two ayahs (at 1x)
         self.playing = None        # the file being played
-
-    @property
-    def active(self):
-        return self.pipe is not None
+        self.active = False
+        self._cur = None           # _Ayah sounding (or paused)
+        self._next = None          # _Ayah prepared, waiting
+        self._gen = 0              # a new one at every play or stop: older timers are ignored
 
     def start(self):
-        if self.pipe:
-            return
-        self.pipe = Gst.ElementFactory.make('playbin', 'hifz')
-        self.pipe.set_property('video-sink', Gst.ElementFactory.make('fakesink', None))
-        tempo = Gst.ElementFactory.make('scaletempo', None)
-        if tempo is not None:
-            self.pipe.set_property('audio-filter', tempo)
-        sink = os.environ.get('HIFZ_AUDIO_SINK')      # tests: "fakesink sync=true"
-        if sink:
-            self.pipe.set_property('audio-sink', Gst.parse_launch(sink))
-        bus = self.pipe.get_bus()
-        bus.add_signal_watch()
-        bus.connect('message::eos', self._eos)
-        bus.connect('message::error', self._eos)
-        bus.connect('message::async-done', self._async_done)
-        bus.connect('message::stream-start', self._stream_start)
-        self.pipe.connect('about-to-finish', self._about_to_finish)
+        self.active = True
 
     def stop(self):
         _log('stop')
-        if self.pipe:
-            self.pipe.set_state(Gst.State.NULL)
-        self._forget()
-        if self.pipe:
-            self.pipe.get_bus().remove_signal_watch()
-            self.pipe = None
-        self.playing = None
+        self.halt()
+        self.active = False
 
     def halt(self):
-        """Stop the current ayah but keep the pipeline."""
-        _log('stop')
-        if self.pipe:
-            self.pipe.set_state(Gst.State.READY)
-        self._forget()
+        """Stop the current ayah (with a quick fade) and forget the queued one."""
+        if self._cur or self._next:
+            _log('stop')
+        self._gen += 1
+        for a in (self._cur, self._next):
+            if a:
+                a.dispose()
+        self._cur = self._next = None
         self.playing = None
 
-    def _forget(self):
-        # After the state change: no streaming thread can hand over a file any more, and
-        # whatever it posted before belongs to an older generation.
-        self._gen += 1
-        self.queued = []
-        self._gapless = None
-
     def play(self, path):
-        if not self.pipe:
+        if not self.active:
             return
-        self.pipe.set_state(Gst.State.READY)
-        self._forget()
-        self.pipe.set_property('uri', Gst.filename_to_uri(path))
+        self.halt()
+        self._cur = _Ayah(path, self.speed, self._eos)
+        self._cur.start()
         self.playing = path
         _log('play', path, self.speed)
-        # Preroll paused, set the rate, then play: no first moment at the wrong speed.
-        self._starting = True
-        self.pipe.set_state(Gst.State.PAUSED)
+
+    @property
+    def queued(self):
+        return [self._next.path] if self._next else []
+
+    @queued.setter
+    def queued(self, paths):
+        """The ayah to go on with: prepared now, so it starts without delay."""
+        if self._next:
+            self._next.dispose(fade=False)
+            self._next = None
+        if paths and self.active and os.path.exists(paths[0]):
+            self._next = _Ayah(paths[0], self.speed, self._eos)
 
     @property
     def paused(self):
-        return bool(self.pipe and self.playing and self.pipe.get_state(0)[2] == Gst.State.PAUSED
-                    and not self._starting)
+        return bool(self._cur and self._cur.pipe and self._cur.pipe.get_state(0)[1] == Gst.State.PAUSED)
 
     def pause(self):
-        if self.pipe and self.playing:
+        if self._cur and self._cur.pipe:
             _log('stop')
-            self.pipe.set_state(Gst.State.PAUSED)
+            self._cur.pipe.set_state(Gst.State.PAUSED)
 
     def resume(self):
-        if self.pipe and self.playing:
+        if self._cur and self._cur.pipe:
             _log('resume', self.playing, self.speed)
-            self.pipe.set_state(Gst.State.PLAYING)
+            self._cur.pipe.set_state(Gst.State.PLAYING)
 
     def set_speed(self, speed):
         self.speed = speed
         _log('speed', speed)
-        if self.pipe and self.playing and not self._starting:
-            self._rate()
+        for a in (self._cur, self._next):
+            if a:
+                a.set_speed(speed)
 
-    def _rate(self):
-        flags = getattr(Gst.SeekFlags, 'INSTANT_RATE_CHANGE', None)
-        if flags is not None and self.pipe.seek(self.speed, Gst.Format.TIME, flags, Gst.SeekType.NONE, 0,
-                                                Gst.SeekType.NONE, 0):
-            return
-        ok, pos = self.pipe.query_position(Gst.Format.TIME)
-        self.pipe.seek(self.speed, Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
-                       Gst.SeekType.SET, pos if ok else 0, Gst.SeekType.NONE, 0)
-
-    def _about_to_finish(self, pipe):
-        # Runs in a streaming thread: hand over the next queued file (a pause, then the ayah).
-        gen, queue = self._gen, self.queued
-        if queue and os.path.exists(queue[0]):
-            self.queued = queue[1:]
-            self._gapless = (gen, queue[0])
-            pipe.set_property('uri', Gst.filename_to_uri(queue[0]))
-
-    def _stream_start(self, bus, msg):
-        handed = self._gapless
-        if not handed or handed[0] != self._gen:
-            return                 # a normal start, or a signal from before the last move
-        self._gapless = None
-        path = handed[1]
-        self.playing = path
-        if self.speed != 1.0:
-            self._rate()           # each new stream starts at its own rate 1
-        if os.path.basename(path).startswith('pause-'):
-            return                 # the breath between two ayahs: the text stays
-        _log('play', path, self.speed)
-        if self.on_next:
-            self.on_next()
-
-    def _async_done(self, bus, msg):
-        if self._starting:
-            self._starting = False
-            if self.speed != 1.0:
-                self.pipe.seek(self.speed, Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
-                               Gst.SeekType.SET, 0, Gst.SeekType.NONE, 0)
-            self.pipe.set_state(Gst.State.PLAYING)
-
-    def _eos(self, bus, msg):
-        if self.pipe:
-            self.pipe.set_state(Gst.State.READY)
-        was = self.playing
-        self.playing = None
-        if was:
+    def _eos(self, ayah):
+        if ayah is not self._cur:
+            return                 # an ayah you already moved away from
+        ayah.dispose(fade=False)
+        self._cur = None
+        nxt, gen = self._next, self._gen
+        if not nxt:
+            self.playing = None
             self.on_end()
+            return
+        self._next = None
+
+        def go_on():
+            if gen != self._gen:
+                nxt.dispose(fade=False)     # you moved meanwhile
+                return False
+            self._cur = nxt
+            self.playing = nxt.path
+            nxt.start()
+            _log('play', nxt.path, self.speed)
+            if self.on_next:
+                self.on_next()
+            return False
+        if self.breath > 0:
+            GLib.timeout_add(int(self.breath / self.speed * 1000), go_on)
+        else:
+            go_on()

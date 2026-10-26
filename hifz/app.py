@@ -12,7 +12,7 @@ gi.require_version('Graphene', '1.0')
 from gi.repository import Adw, Gdk, Gio, GLib, Graphene, Gtk, Pango  # noqa: E402
 
 from . import APP_ID, quran  # noqa: E402
-from .audio import RECITERS, Downloader, Player, file_for, silence  # noqa: E402
+from .audio import RECITERS, Downloader, Player, file_for  # noqa: E402
 from .phonetic import STYLES, restyle  # noqa: E402
 from .state import PAUSES, SPEED_MAX, SPEED_MIN, SPEEDS, State  # noqa: E402
 from .translations import LANG_LABELS, available as available_langs, text as tr_text  # noqa: E402
@@ -756,8 +756,8 @@ class Prompter(Adw.ApplicationWindow):
         if self.audio_on and self.state.auto and self.index + 1 < len(self.lines):
             path, _ = file_for(self.state.reciter, self.surah, self.lines[self.index + 1].ayah)
             if os.path.exists(path):
-                breath = PAUSES[self.state.pause]
-                self.player.queued = ([silence(breath)] if breath else []) + [path]
+                self.player.breath = PAUSES[self.state.pause]
+                self.player.queued = [path]
 
     def _audio_next(self):
         # The queued ayah has started playing: move the text along with it.
